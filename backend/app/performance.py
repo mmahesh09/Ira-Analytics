@@ -63,7 +63,7 @@ async def run_local_lighthouse(url: str) -> dict | None:
     async with _local_slot:
         proc = await asyncio.create_subprocess_exec(
             cli, url, "--only-categories=performance", "--form-factor=mobile", "--output=json", "--output-path=stdout", "--quiet",
-            "--chrome-flags=--headless=new --no-first-run --disable-extensions" + (" --no-sandbox --disable-dev-shm-usage" if settings.chrome_no_sandbox else ""),
+            "--chrome-flags=--headless=new --no-first-run --disable-extensions",
             stdout=asyncio.subprocess.PIPE, stderr=asyncio.subprocess.DEVNULL,
             env={**os.environ, "CHROME_PATH": browser},
         )

@@ -1,8 +1,6 @@
 import os
 from dataclasses import dataclass, field
 
-from urllib.parse import parse_qsl, urlencode, urlsplit, urlunsplit
-
 from dotenv import load_dotenv
 
 load_dotenv()
@@ -10,21 +8,6 @@ load_dotenv()
 
 def _list(name: str, default: str) -> list[str]:
     return [item.strip() for item in os.getenv(name, default).split(",") if item.strip()]
-
-
-def async_db_url(raw: str) -> str:
-    """Accepts the plain URL hosts hand out (Neon, Render, Vercel: postgres://…?sslmode=require) and returns
-    the asyncpg form SQLAlchemy needs, so one DATABASE_URL works for the backend and the frontend."""
-    parts = urlsplit(raw)
-    if parts.scheme not in ("postgres", "postgresql", "postgresql+asyncpg"):
-        return raw
-    params = parse_qsl(parts.query)
-    sslmode = dict(params).get("sslmode")
-    # asyncpg rejects libpq-only options
-    query = [(k, v) for k, v in params if k not in ("sslmode", "channel_binding")]
-    if sslmode and sslmode != "disable" and "ssl" not in dict(query):
-        query.append(("ssl", sslmode if sslmode in ("verify-ca", "verify-full") else "require"))
-    return urlunsplit(("postgresql+asyncpg", parts.netloc, parts.path, urlencode(query), parts.fragment))
 
 
 @dataclass(frozen=True)
@@ -39,9 +22,7 @@ class Settings:
     dataforseo_password: str = os.getenv("DATAFORSEO_PASSWORD", "")
     rate_limit_per_10min: int = int(os.getenv("RATE_LIMIT_PER_10MIN", "10"))
 
-    database_url: str = async_db_url(os.getenv("DATABASE_URL", "postgresql+asyncpg://postgres:postgres@localhost:5432/rankwise"))
-    # run the job loop inside the API process (single-container hosts such as Render's free tier)
-    embedded_worker: bool = os.getenv("EMBEDDED_WORKER", "false").lower() == "true"
+    database_url: str = os.getenv("DATABASE_URL", "postgresql+asyncpg://postgres:postgres@localhost:5432/rankwise")
     public_api_url: str = os.getenv("PUBLIC_API_URL", "http://localhost:8000")
 
     # Razorpay subscriptions (use rzp_test_ keys in development)
@@ -60,8 +41,6 @@ class Settings:
     # Speed fallback when PageSpeed Insights is unavailable: run the Lighthouse CLI locally
     local_lighthouse: bool = os.getenv("LOCAL_LIGHTHOUSE", "true").lower() == "true"
     lighthouse_chrome_path: str = os.getenv("LIGHTHOUSE_CHROME_PATH", "")
-    # containers run Chromium as root without user namespaces: it needs --no-sandbox (set by the Dockerfile)
-    chrome_no_sandbox: bool = os.getenv("CHROME_NO_SANDBOX", "false").lower() == "true"
 
     user_agent: str ="Mozilla/5.0 (compatible; RankwiseAuditBot/1.0)"
     max_page_bytes: int = 3 * 1024 * 1024

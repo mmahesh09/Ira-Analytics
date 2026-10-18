@@ -35,8 +35,8 @@ async def schedule_due() -> int:
     return len(due)
 
 
-async def run_forever() -> None:
-    """The job loop. Runs as its own process (ROLE=worker) or inside the API (EMBEDDED_WORKER=true)."""
+async def main() -> None:
+    logging.basicConfig(level=logging.INFO, format="%(asctime)s %(name)s %(levelname)s %(message)s")
     log.info("worker started")
     last_schedule = 0.0
     loop = asyncio.get_running_loop()
@@ -49,25 +49,14 @@ async def run_forever() -> None:
                 log.exception("scheduling failed")
             last_schedule = loop.time()
 
-        try:
-            async with SessionLocal() as db:
-                job = await jobs.claim(db)
-                if job is None:
-                    await asyncio.sleep(IDLE_SLEEP)
-                    continue
-                log.info("running job %s (%s, attempt %d)", job.id, job.kind, job.attempts)
-                error = await jobs.run(job)
-                await jobs.finish(db, job, error)
-        except asyncio.CancelledError:
-            raise
-        except Exception:  # e.g. the database is briefly unreachable: back off instead of dying
-            log.exception("worker loop error")
-            await asyncio.sleep(IDLE_SLEEP * 6)
-
-
-async def main() -> None:
-    logging.basicConfig(level=logging.INFO, format="%(asctime)s %(name)s %(levelname)s %(message)s")
-    await run_forever()
+        async with SessionLocal() as db:
+            job = await jobs.claim(db)
+            if job is None:
+                await asyncio.sleep(IDLE_SLEEP)
+                continue
+            log.info("running job %s (%s, attempt %d)", job.id, job.kind, job.attempts)
+            error = await jobs.run(job)
+            await jobs.finish(db, job, error)
 
 
 if __name__ == "__main__":

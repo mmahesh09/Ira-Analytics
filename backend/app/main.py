@@ -1,10 +1,8 @@
 import asyncio
 import json
 import re
-import logging
 import time
 from collections import defaultdict, deque
-from contextlib import asynccontextmanager, suppress
 
 from fastapi import FastAPI, HTTPException, Query, Request
 from fastapi.middleware.cors import CORSMiddleware
@@ -18,25 +16,8 @@ from .db import engine
 from .models import AuditRequest
 from .routers import auth, billing, content, monitoring, sites
 from .runner import run_audit
-from .worker import run_forever
 
-@asynccontextmanager
-async def lifespan(_: FastAPI):
-    # single-container hosts (Render free tier): run scheduled audits and queued jobs in this process
-    task = asyncio.create_task(run_forever()) if settings.embedded_worker else None
-    if task and not logging.getLogger().handlers:
-        # uvicorn only configures its own loggers; give the worker's log lines somewhere to go
-        logging.basicConfig(level=logging.INFO, format="%(asctime)s %(name)s %(levelname)s %(message)s")
-    try:
-        yield
-    finally:
-        if task:
-            task.cancel()
-            with suppress(asyncio.CancelledError):
-                await task
-
-
-app = FastAPI(title="Rankwise API", version="0.2.0", lifespan=lifespan)
+app = FastAPI(title="Rankwise API", version="0.2.0")
 app.add_middleware(
     CORSMiddleware,
     allow_origins=settings.cors_origins,

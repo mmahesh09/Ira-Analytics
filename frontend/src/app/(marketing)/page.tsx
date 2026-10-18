@@ -90,7 +90,7 @@ export default function Home() {
             </p>
           </Reveal>
           <Reveal load delay={0.15} className="mt-10">
-            <UrlForm autoFocus align="center" tone="light" />
+            <UrlForm autoFocus align="center" />
           </Reveal>
           <Reveal load delay={0.2}>
             <ul className="flex flex-wrap justify-center gap-x-6 gap-y-2 font-sub text-[14px] text-ink-3">

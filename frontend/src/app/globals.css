@@ -208,53 +208,13 @@ body {
 }
 
 /*
-  Apple-style light chapters: any section with .theme-light re-maps the tokens, so existing
-  utilities (bg-paper, text-ink, text-ink-3, border-line…) render light inside it.
-  Status colours are darkened to keep AA contrast on white.
+  The whole site is black (rudraai.online palette). Sections that used to be light keep the
+  .theme-light class as a section marker only: same black, separated by a faint top hairline.
 */
 .theme-light {
-  color-scheme: light;
-  --paper: #fbfbfd;
-  --surface: #f5f5f7;
-  --surface-2: #ececf0;
-  --surface-3: #e3e3e8;
-  --surface-ink: #f5f5f7;
-  --ink: #1d1d1f;
-  --ink-2: #424245;
-  --ink-3: #6e6e73;
-  --line: rgb(0 0 0 / 0.08);
-  --line-strong: rgb(0 0 0 / 0.14);
-  --good: #1a7f4b;
-  --good-soft: rgb(26 127 75 / 0.1);
-  --warn: #a25a00;
-  --warn-soft: rgb(162 90 0 / 0.1);
-  --bad: #d12b2b;
-  --bad-soft: rgb(209 43 43 / 0.08);
-  --cobalt: #9333ea; /* purple-600: AA on white */
-  --cobalt-hover: #7e22ce;
-  --focus: #9333ea;
   background: var(--paper);
   color: var(--ink);
-}
-.theme-light .text-gradient {
-  background: linear-gradient(180deg, #1d1d1f 35%, #6e6e73);
-  -webkit-background-clip: text;
-  background-clip: text;
-}
-.theme-light .panel {
-  background: #ffffff;
-  border-color: rgb(0 0 0 / 0.06);
-  box-shadow:
-    0 1px 2px rgb(0 0 0 / 0.04),
-    0 12px 40px rgb(0 0 0 / 0.06);
-}
-.theme-light .grid-bg {
-  background-image:
-    linear-gradient(to right, rgb(0 0 0 / 0.05) 1px, transparent 1px),
-    linear-gradient(to bottom, rgb(0 0 0 / 0.05) 1px, transparent 1px);
-}
-.theme-light .seam {
-  background: linear-gradient(90deg, transparent, rgb(0 0 0 / 0.12), transparent);
+  box-shadow: inset 0 1px 0 rgb(255 255 255 / 0.06);
 }
 
 /* primary call to action in the brand purple (rudraai.online) */

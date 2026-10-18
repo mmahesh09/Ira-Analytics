@@ -41,6 +41,8 @@ class Settings:
     # Speed fallback when PageSpeed Insights is unavailable: run the Lighthouse CLI locally
     local_lighthouse: bool = os.getenv("LOCAL_LIGHTHOUSE", "true").lower() == "true"
     lighthouse_chrome_path: str = os.getenv("LIGHTHOUSE_CHROME_PATH", "")
+    # containers run Chromium as root without user namespaces: it needs --no-sandbox (set by the Dockerfile)
+    chrome_no_sandbox: bool = os.getenv("CHROME_NO_SANDBOX", "false").lower() == "true"
 
     user_agent: str ="Mozilla/5.0 (compatible; RankwiseAuditBot/1.0)"
     max_page_bytes: int = 3 * 1024 * 1024

@@ -1,0 +1,31 @@
+# secrets: never commit real env files (templates are fine)
+.env
+.env.*
+!.env.example
+**/.env
+**/.env.*
+!**/.env.example
+
+# Python
+__pycache__/
+*.pyc
+.venv/
+.pytest_cache/
+
+# Node / Next.js
+node_modules/
+.next/
+out/
+*.tsbuildinfo
+next-env.d.ts
+.vercel/
+
+# runtime data (Visual Doctor screenshots)
+backend/data/
+
+# third-party clone kept locally for reference, not part of this product
+umami/
+
+# OS / editor
+.DS_Store
+Thumbs.db

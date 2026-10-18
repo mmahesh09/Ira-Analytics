@@ -1,4 +1,69 @@
-# Deploying Rankwise for free (Oracle Cloud Free VM + Coolify)
+# Deploying Rankwise
+
+Two free options. Both use the same Docker image (`backend/Dockerfile`), so moving later is painless.
+
+- **Render (free) + Neon**: the quickest. Below.
+- **Oracle Cloud Free VM + Coolify**: fully open source, more power (Chromium checks on). Further down.
+
+Never paste passwords or keys into chat or commit them: they go only into Render's, Neon's and Vercel's settings screens.
+
+---
+
+## Render (free) + Neon Postgres
+
+What the free tier gives: 512 MB RAM, so local Chromium/Lighthouse are left out of the image.
+Speed comes from Google PageSpeed Insights; Accessibility and Visual Doctor show "unavailable" until you
+move the service to **Standard (2 GB)** and set `WITH_BROWSER`, `BROWSER_CHECKS`, `LOCAL_LIGHTHOUSE` to `true`.
+Free services sleep after 15 minutes idle; step 6 keeps it awake so monitoring keeps running.
+
+### 1. Database: Neon (free, no expiry)
+<https://neon.tech> → sign in with GitHub → **New project** `rankwise`, region **AWS Asia Pacific (Singapore)**
+(same region as the Render service). Copy the **connection string**: `postgresql://…neon.tech/neondb?sslmode=require`.
+
+### 2. Keys
+- **PageSpeed Insights** (free): <https://console.cloud.google.com> → APIs & Services → enable *PageSpeed Insights API* → Credentials → **API key**.
+- **OpenRouter** (AI features, pay per use): <https://openrouter.ai/keys>.
+
+### 3. Create the sign-in tables (once, from this PC, before the first Render deploy)
+The app's tables reference Better Auth's `user` table, so this must run first. PowerShell, from the repo root:
+```powershell
+cd frontend
+$env:DATABASE_URL = Read-Host "Neon connection string" -MaskInput
+npx -y auth@1.7.10 migrate --config src/lib/auth.ts --yes
+Remove-Item Env:DATABASE_URL
+```
+
+### 4. Render: create the service from the Blueprint
+<https://dashboard.render.com/blueprint/new?repo=https://github.com/mmahesh09/Ira-Analytics>
+(if Render can't see the repo: **Account settings → GitHub → Configure** and grant it access to `Ira-Analytics`).
+Render reads `render.yaml` and asks for three values: `DATABASE_URL` (the Neon string), `PAGESPEED_API_KEY`,
+`OPENROUTER_API_KEY`. Click **Apply**. The first build takes a few minutes; on start the container runs
+`alembic upgrade head`, which creates the rest of the tables.
+
+Check: <https://rankwise-api.onrender.com/api/health> should report the database as ok.
+(If Render gave the service a different URL, update `PUBLIC_API_URL` in its Environment tab.)
+
+### 5. Vercel (Project → Settings → Environment Variables → Production), then Redeploy
+
+| Name | Value |
+|---|---|
+| `DATABASE_URL` | the same Neon connection string |
+| `BETTER_AUTH_SECRET` | a new random secret (`openssl rand -base64 32`, or any 32+ random characters) |
+| `BETTER_AUTH_URL` | `https://rankwise-xi.vercel.app` |
+| `BACKEND_URL` | `https://rankwise-api.onrender.com` |
+| `NEXT_PUBLIC_API_URL` | `https://rankwise-api.onrender.com` |
+
+### 6. Keep it awake (free)
+<https://cron-job.org> → new cron job → URL `https://rankwise-api.onrender.com/api/health`, every **10 minutes**.
+One always-on free service fits in Render's 750 free hours a month.
+
+### 7. Check
+Sign up on the live site, add a site, run an audit: SEO, AEO, GEO and Speed return; Render logs show
+`worker started` and, after adding a site, `scheduled 1 site(s)`.
+
+---
+
+## Oracle Cloud Free VM + Coolify
 
 Everything here is open source or free-forever. When paying users arrive, the same Docker image and
 `docker-compose.yml` move unchanged to any paid host (Hetzner, Fly.io, Railway, Render…).
@@ -13,9 +78,8 @@ Better Auth       ─┐     worker   scheduled audits, crawls, alerts  (ROLE=wo
 Never paste passwords or keys into chat or commit them: they go only into Coolify's and Vercel's
 environment-variable screens.
 
----
 
-## 1. Create the free VM (Oracle Cloud)
+### 1. Create the free VM (Oracle Cloud)
 
 1. Sign up at <https://signup.cloud.oracle.com>. A card is asked for identity only; Always Free shapes are never charged.
    Pick a home region close to your users (e.g. India West (Mumbai)).
@@ -37,7 +101,7 @@ environment-variable screens.
    sudo netfilter-persistent save
    ```
 
-## 2. Install Coolify (open-source, self-hosted PaaS)
+### 2. Install Coolify (open-source, self-hosted PaaS)
 
 ```bash
 curl -fsSL https://cdn.coollabs.io/coolify/install.sh | sudo bash
@@ -45,7 +109,7 @@ curl -fsSL https://cdn.coollabs.io/coolify/install.sh | sudo bash
 Open `http://<VM_PUBLIC_IP>:8000`, create the admin account immediately (the first visitor becomes admin),
 then **Sources → GitHub App → install** it on the `Ira-Analytics` repository.
 
-## 3. Database (Coolify → New Resource → PostgreSQL 18)
+### 3. Database (Coolify → New Resource → PostgreSQL 18)
 
 1. Create it, then in its settings:
    - **Make it publicly available**: on, public port **5432**
@@ -55,7 +119,7 @@ then **Sources → GitHub App → install** it on the `Ira-Analytics` repository
    - **internal URL** (for the backend, same server)
    - **public URL** (for Vercel)
 
-## 4. Backend (Coolify → New Resource → Docker Compose → from GitHub)
+### 4. Backend (Coolify → New Resource → Docker Compose → from GitHub)
 
 - Repository `Ira-Analytics`, branch `main`, compose file `/docker-compose.yml`.
 - Turn on **Connect to predefined network** so the stack can reach the database by its internal host name.
@@ -74,7 +138,7 @@ then **Sources → GitHub App → install** it on the `Ira-Analytics` repository
 Do **not** deploy yet: the app tables reference Better Auth's `user` table, so do step 5 first.
 (If you deploy early, the api container simply retries its migration every 15 s.)
 
-## 5. Create the sign-in tables (once, from this laptop)
+### 5. Create the sign-in tables (once, from this laptop)
 
 From the repo root on your PC, with the database's **public** URL (PowerShell):
 ```powershell
@@ -86,7 +150,7 @@ Remove-Item Env:DATABASE_URL
 Then press **Deploy** in Coolify. The api container runs `alembic upgrade head`, which creates every other
 table, and starts. Check `https://<api-domain>/api/health`: it should report the database as ok.
 
-## 6. Frontend (Vercel → Project → Settings → Environment Variables, Production)
+### 6. Frontend (Vercel → Project → Settings → Environment Variables, Production)
 
 | Name | Value |
 |---|---|
@@ -98,20 +162,20 @@ table, and starts. Check `https://<api-domain>/api/health`: it should report the
 
 Redeploy. With the GitHub link working, every `git push` redeploys automatically.
 
-## 7. Check it end to end
+### 7. Check it end to end
 
 - Sign up on the live site, add a site, run an audit: every module returns, including Speed and Accessibility.
 - In the report: priority chips, "Biggest wins", code snippets, and **Rewrite with AI**.
 - Coolify → worker logs show `scheduled N site(s)` within a minute of adding a site.
 
-## Local run (same stack)
+### Local run (same stack)
 
 ```bash
 # put values in a .env file next to docker-compose.yml (never commit it)
 docker compose --profile bundled-db up -d --build
 ```
 
-## Fallback: Hugging Face Spaces + Neon (if Oracle has no capacity)
+### Fallback: Hugging Face Spaces + Neon (if Oracle has no capacity)
 
 - Database: a free Postgres at <https://neon.tech> (SSL included).
 - Backend: a **Docker** Space built from `backend/Dockerfile`, with the same variables as step 4 and `PORT=7860`.

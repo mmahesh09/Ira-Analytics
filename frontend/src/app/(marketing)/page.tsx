@@ -234,10 +234,10 @@ export default function Home() {
           </div>
           <ul className="mt-12 grid gap-x-8 sm:grid-cols-2 lg:grid-cols-4">
             {FEATURES.map((f) => (
-              <li key={f.slug} className="flex items-center justify-between gap-3 border-t border-line py-3.5">
+              <li key={f.slug} className="flex items-start justify-between gap-3 border-t border-line py-3.5">
                 <span className="flex min-w-0 items-center gap-2.5 text-[15px]">
                   <f.icon aria-hidden="true" className="size-4 shrink-0 text-cobalt" />
-                  <span className="truncate">{f.name}</span>
+                  <span className="leading-snug">{f.name}</span>
                 </span>
                 {f.status === "live" ? (
                   <span className="flex shrink-0 items-center gap-1.5 font-code text-[10.5px] uppercase tracking-[0.12em] text-good">

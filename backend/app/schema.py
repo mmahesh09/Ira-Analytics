@@ -165,6 +165,16 @@ class AiPrompt(Base):
     created_at: Mapped[datetime] = _now()
 
 
+class AiRewrite(Base):
+    """One AI Content Optimization request; counted per calendar month against the plan's ai_rewrites."""
+    __tablename__ = "ai_rewrites"
+    id: Mapped[int] = mapped_column(BigInteger, primary_key=True)
+    user_id: Mapped[str] = mapped_column(Text, ForeignKey("user.id", ondelete="CASCADE"), index=True)
+    site_id: Mapped[int] = mapped_column(ForeignKey("sites.id", ondelete="CASCADE"), index=True)
+    field: Mapped[str] = mapped_column(String(16))
+    created_at: Mapped[datetime] = _now()
+
+
 class AiRun(Base):
     __tablename__ = "ai_runs"
     id: Mapped[int] = mapped_column(BigInteger, primary_key=True)

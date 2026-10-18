@@ -16,6 +16,8 @@ class Settings:
     pagespeed_api_key: str = os.getenv("PAGESPEED_API_KEY", "")
     openrouter_api_key: str = os.getenv("OPENROUTER_API_KEY", "")
     geo_models: list[str] = field(default_factory=lambda: _list("GEO_MODELS", "perplexity/sonar,openai/gpt-4o-mini"))
+    # AI Content Optimization rewrites (any OpenRouter model id); defaults to the last GEO model
+    content_model: str = os.getenv("CONTENT_MODEL", "") or _list("GEO_MODELS", "perplexity/sonar,openai/gpt-4o-mini")[-1]
     dataforseo_login: str = os.getenv("DATAFORSEO_LOGIN", "")
     dataforseo_password: str = os.getenv("DATAFORSEO_PASSWORD", "")
     rate_limit_per_10min: int = int(os.getenv("RATE_LIMIT_PER_10MIN", "10"))

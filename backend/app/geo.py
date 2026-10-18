@@ -10,6 +10,7 @@ import httpx
 
 from .common import SiteFiles, score_checks, summarize
 from .config import settings
+from .llm import chat as _chat
 from .models import Check, ModuleResult
 from .page import Page
 
@@ -23,7 +24,6 @@ AI_CRAWLERS = {
     "Applebot-Extended": "Apple Intelligence",
     "CCBot": "Common Crawl",
 }
-OPENROUTER_URL = "https://openrouter.ai/api/v1/chat/completions"
 STAT_RE = re.compile(r"\b\d+(?:[.,]\d+)?\s?(?:%|percent|x\b|million|billion)", re.I)
 
 
@@ -59,18 +59,6 @@ def _modified_date(page: Page) -> datetime | None:
             except ValueError:
                 continue
     return None
-
-
-async def _chat(client: httpx.AsyncClient, model: str, prompt: str, max_tokens: int = 500) -> dict:
-    resp = await client.post(
-        OPENROUTER_URL,
-        headers={"Authorization": f"Bearer {settings.openrouter_api_key}", "X-Title": "Rankwise"},
-        json={"model": model, "max_tokens": max_tokens, "messages": [{"role": "user", "content": prompt}]},
-        timeout=45,
-    )
-    resp.raise_for_status()
-    body = resp.json()
-    return {"text": body["choices"][0]["message"]["content"] or "", "citations": body.get("citations") or []}
 
 
 async def _visibility_probes(page: Page, brand: str) -> dict:

@@ -1,6 +1,15 @@
 export type Status = "pass" | "warn" | "fail" | "info";
 export type ModuleKey = "seo" | "aeo" | "geo" | "performance" | "accessibility" | "traffic";
 
+export type Severity = "critical" | "high" | "medium" | "low";
+
+/** Ready-to-paste code for a fix (One-Click Fix Suggestions). */
+export interface Snippet {
+  lang: "html" | "json" | "text" | "markdown" | "xml";
+  file: string;
+  code: string;
+}
+
 export interface Check {
   id: string;
   title: string;
@@ -8,6 +17,11 @@ export interface Check {
   weight: number;
   detail: string;
   fix: string | null;
+  /* Smart Issue Prioritization; absent on reports cached before it shipped */
+  severity?: Severity | null;
+  effort?: 1 | 2 | 3 | null;
+  confidence?: number | null;
+  snippet?: Snippet | null;
 }
 
 export interface ModuleResult {
@@ -74,6 +88,8 @@ export interface IssueRow {
   first_seen_at: string;
   last_seen_at: string;
   resolved_at: string | null;
+  effort: 1 | 2 | 3;
+  confidence: number;
 }
 
 export interface LinkRow {

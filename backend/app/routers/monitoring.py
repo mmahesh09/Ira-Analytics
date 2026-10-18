@@ -12,6 +12,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from .. import jobs
 from ..auth import current_user, owned_site
 from ..config import settings
+from ..priority import CONFIDENCE, DEFAULT_CONFIDENCE, DEFAULT_EFFORT, EFFORT
 from ..db import get_session
 from ..schema import Alert, Audit, Issue, Job, LinkCheck, Site, User
 
@@ -38,6 +39,9 @@ class IssueOut(BaseModel):
     first_seen_at: datetime
     last_seen_at: datetime
     resolved_at: datetime | None
+    # Smart Issue Prioritization, looked up by check id
+    effort: int = DEFAULT_EFFORT
+    confidence: float = DEFAULT_CONFIDENCE
 
 
 class LinkOut(BaseModel):
@@ -90,7 +94,12 @@ async def issues(site: Site = Depends(owned_site), db: AsyncSession = Depends(ge
     if status != "all":
         query = query.where(Issue.status == status)
     order = Issue.resolved_at.desc() if status == "resolved" else Issue.first_seen_at.desc()
-    return [IssueOut.model_validate(i, from_attributes=True) for i in await db.scalars(query.order_by(order).limit(500))]
+    return [
+        IssueOut.model_validate(i, from_attributes=True).model_copy(
+            update={"effort": EFFORT.get(i.check_id, DEFAULT_EFFORT), "confidence": CONFIDENCE.get(i.check_id, DEFAULT_CONFIDENCE)}
+        )
+        for i in await db.scalars(query.order_by(order).limit(500))
+    ]
 
 
 @router.get("/api/sites/{site_id}/links", response_model=list[LinkOut])

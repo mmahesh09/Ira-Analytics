@@ -2,8 +2,10 @@
 
 import { useState } from "react";
 import { AnimatePresence, m } from "framer-motion";
-import { Check as CheckMark, ChevronDown, CircleCheck, CircleX, Copy, Info, TriangleAlert, Wrench } from "lucide-react";
-import type { Check, Status } from "@/lib/types";
+import { Check as CheckMark, ChevronDown, CircleCheck, CircleX, Clock, Copy, Info, TriangleAlert, Wrench } from "lucide-react";
+import { EFFORT_LABEL, SEVERITY_LABEL } from "@/lib/scoring";
+import type { Check, Severity, Snippet, Status } from "@/lib/types";
+import { AiRewrite, REWRITE_FIELD } from "./ai-rewrite";
 
 const STATUS_META: Record<Status, { icon: typeof Info; className: string; chip: string; label: string }> = {
   fail: { icon: CircleX, className: "text-bad", chip: "bg-bad-soft text-bad", label: "Critical" },
@@ -12,7 +14,14 @@ const STATUS_META: Record<Status, { icon: typeof Info; className: string; chip: 
   info: { icon: Info, className: "text-ink-3", chip: "bg-surface-3 text-ink-2", label: "Info" },
 };
 
-function CopyButton({ text }: { text: string }) {
+const SEVERITY_CHIP: Record<Severity, string> = {
+  critical: "bg-bad-soft text-bad",
+  high: "bg-warn-soft text-warn",
+  medium: "bg-surface-3 text-ink-2",
+  low: "bg-surface-3 text-ink-3",
+};
+
+function CopyButton({ text, label = "Copy fix" }: { text: string; label?: string }) {
   const [copied, setCopied] = useState(false);
   return (
     <button
@@ -24,7 +33,7 @@ function CopyButton({ text }: { text: string }) {
         });
       }}
       className="inline-flex shrink-0 cursor-pointer items-center gap-1 rounded-md px-2 py-1 font-sub text-[12px] text-ink-3 transition-colors duration-200 hover:bg-surface-3 hover:text-ink"
-      aria-label="Copy fix"
+      aria-label={label}
     >
       {copied ? <CheckMark className="size-3.5 text-good" /> : <Copy className="size-3.5" />}
       {copied ? "Copied" : "Copy"}
@@ -32,11 +41,29 @@ function CopyButton({ text }: { text: string }) {
   );
 }
 
+/** One-click fix: the generated code, labelled with where it goes. */
+function CodeFix({ snippet }: { snippet: Snippet }) {
+  return (
+    <div className="mt-3 overflow-hidden rounded-lg border border-cobalt/20 bg-[#0b0b0e]">
+      <div className="flex items-center justify-between gap-3 border-b border-white/[0.06] px-3 py-1.5">
+        <span className="font-code text-[11px] text-ink-3">
+          <span className="text-cobalt">paste into</span> {snippet.file}
+        </span>
+        <CopyButton text={snippet.code} label={`Copy code for ${snippet.file}`} />
+      </div>
+      <pre className="max-h-72 overflow-auto px-3 py-2.5 font-code text-[12.5px] leading-relaxed text-ink-2">
+        <code>{snippet.code}</code>
+      </pre>
+    </div>
+  );
+}
+
 /** One check as an expandable card. Problems open by default so the fix is visible immediately. */
-export function CheckItem({ check, tag }: { check: Check; tag?: string }) {
+export function CheckItem({ check, tag, gain }: { check: Check; tag?: string; gain?: number }) {
   const meta = STATUS_META[check.status];
   const Icon = meta.icon;
-  const expandable = Boolean(check.fix || check.detail);
+  const rewrite = check.status !== "pass" ? REWRITE_FIELD[check.id] : undefined;
+  const expandable = Boolean(check.fix || check.detail || check.snippet || rewrite);
   const [open, setOpen] = useState(check.status === "fail");
 
   return (
@@ -54,8 +81,18 @@ export function CheckItem({ check, tag }: { check: Check; tag?: string }) {
             {check.title}
           </span>
         </span>
+        {gain !== undefined && gain > 0 && <span className="shrink-0 font-mono text-[12.5px] font-medium text-good">+{gain} pts</span>}
+        {check.effort && (
+          <span className="hidden shrink-0 items-center gap-1 font-sub text-[11.5px] text-ink-3 md:inline-flex" title="Estimated effort">
+            <Clock aria-hidden="true" className="size-3" /> {EFFORT_LABEL[check.effort]}
+          </span>
+        )}
         {tag && <span className="rounded-sm bg-surface-3 px-1.5 py-0.5 font-sub text-[11px] text-ink-3">{tag}</span>}
-        <span className={`hidden rounded-full px-2 py-0.5 font-sub text-[11px] font-medium sm:inline ${meta.chip}`}>{meta.label}</span>
+        {check.severity ? (
+          <span className={`hidden rounded-full px-2 py-0.5 font-sub text-[11px] font-medium sm:inline ${SEVERITY_CHIP[check.severity]}`}>{SEVERITY_LABEL[check.severity]}</span>
+        ) : (
+          <span className={`hidden rounded-full px-2 py-0.5 font-sub text-[11px] font-medium sm:inline ${meta.chip}`}>{meta.label}</span>
+        )}
         {expandable && (
           <ChevronDown aria-hidden="true" className={`mt-0.5 size-4 shrink-0 text-ink-3 transition-transform duration-200 ${open ? "rotate-180" : ""}`} />
         )}
@@ -77,6 +114,8 @@ export function CheckItem({ check, tag }: { check: Check; tag?: string }) {
                 <CopyButton text={check.fix} />
               </div>
             )}
+            {check.snippet && <CodeFix snippet={check.snippet} />}
+            {rewrite && <AiRewrite field={rewrite} />}
           </m.div>
         )}
       </AnimatePresence>

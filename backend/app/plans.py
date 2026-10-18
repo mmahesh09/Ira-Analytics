@@ -25,12 +25,13 @@ class Entitlements:
     retention_months: int
     google_integrations: bool
     crawl_pages: int  # pages the Broken Link Monitor follows per run
+    ai_rewrites: int  # AI Content Optimization requests per calendar month
 
 
 ENTITLEMENTS = {
-    "free": Entitlements(sites=1, pageviews=10_000, audit_cadence="monthly", ai_prompts=3, competitors=0, retention_months=6, google_integrations=False, crawl_pages=3),
-    "pro": Entitlements(sites=5, pageviews=100_000, audit_cadence="weekly", ai_prompts=25, competitors=3, retention_months=24, google_integrations=True, crawl_pages=25),
-    "business": Entitlements(sites=25, pageviews=1_000_000, audit_cadence="daily", ai_prompts=200, competitors=10, retention_months=60, google_integrations=True, crawl_pages=100),
+    "free": Entitlements(sites=1, pageviews=10_000, audit_cadence="monthly", ai_prompts=3, competitors=0, retention_months=6, google_integrations=False, crawl_pages=3, ai_rewrites=5),
+    "pro": Entitlements(sites=5, pageviews=100_000, audit_cadence="weekly", ai_prompts=25, competitors=3, retention_months=24, google_integrations=True, crawl_pages=25, ai_rewrites=100),
+    "business": Entitlements(sites=25, pageviews=1_000_000, audit_cadence="daily", ai_prompts=200, competitors=10, retention_months=60, google_integrations=True, crawl_pages=100, ai_rewrites=1000),
 }
 
 

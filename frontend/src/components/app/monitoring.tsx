@@ -6,6 +6,7 @@ import { Area, AreaChart, CartesianGrid, Line, ResponsiveContainer, Tooltip, XAx
 import { Bell, CheckCircle2, CircleAlert, CircleDot, ExternalLink, LinkIcon, LoaderCircle, Play, Rocket } from "lucide-react";
 import { apiFetch } from "@/lib/api";
 import { MODULES, ago } from "@/lib/format";
+import { EFFORT_LABEL } from "@/lib/scoring";
 import type { AlertRow, AuditPoint, IssueRow, LinkRow, SiteStatus } from "@/lib/types";
 import { COLOR } from "@/components/audit/charts";
 import { Loading, NotFound, PageHeader, useSite } from "./site-pages";
@@ -245,10 +246,13 @@ export function IssuesPage() {
   const issues = useApi<IssueRow[]>(site ? `/sites/${site.id}/issues?status=${tab}` : null);
   if (site === undefined) return <Loading />;
   if (site === null) return <NotFound />;
-  const rows = issues.data ?? [];
+  // open issues in fix-first order (Smart Issue Prioritization); resolved ones stay newest first
+  const rows = [...(issues.data ?? [])].sort((a, b) =>
+    tab === "open" ? ((b.severity === "fail" ? 1 : 0.5) * b.confidence) / b.effort - ((a.severity === "fail" ? 1 : 0.5) * a.confidence) / a.effort : 0,
+  );
   return (
     <>
-      <PageHeader title="Issues" subtitle="Every problem we've tracked, from first seen to resolved." />
+      <PageHeader title="Issues" subtitle="Every problem we've tracked. Open issues are in fix-first order: impact, confidence and effort." />
       <div className="space-y-5 px-6 py-8 lg:px-10">
         <div role="tablist" aria-label="Issue status" className="inline-flex rounded-lg border border-white/[0.1] bg-white/[0.03] p-0.5">
           {(["open", "resolved"] as const).map((t) => (
@@ -282,6 +286,11 @@ export function IssuesPage() {
                   <CircleDot aria-hidden="true" className="size-4 shrink-0 text-warn" />
                 )}
                 <span className="min-w-0 flex-1 truncate text-[14.5px]">{i.title}</span>
+                {i.status === "open" && (
+                  <span className="hidden shrink-0 font-sub text-[12px] text-ink-3 md:inline" title="Estimated effort">
+                    {EFFORT_LABEL[i.effort] ?? ""}
+                  </span>
+                )}
                 <span className="hidden shrink-0 rounded border border-white/[0.08] px-1.5 py-0.5 font-sub text-[11px] text-ink-3 sm:inline">{MODULES[i.module]?.label ?? i.module}</span>
                 <span className="w-32 shrink-0 text-right font-sub text-[12.5px] text-ink-3">{i.resolved_at ? `fixed ${ago(i.resolved_at)}` : `since ${ago(i.first_seen_at)}`}</span>
               </li>

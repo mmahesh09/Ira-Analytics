@@ -11,10 +11,12 @@ from .accessibility import analyze_accessibility
 from .aeo import analyze_aeo
 from .common import SiteFiles, overall_score
 from .fetcher import AuditError, fetch, fetch_optional, make_client, normalize_url
+from .fixes import snippet_for
 from .geo import analyze_geo
 from .models import AuditReport, ModuleResult
 from .page import parse_page
 from .performance import analyze_performance
+from .priority import annotate
 from .seo import analyze_seo
 from .traffic import analyze_traffic
 
@@ -47,6 +49,16 @@ async def _site_files(client, origin: str) -> SiteFiles:
         sitemap_url_count=sitemap.text.count("<loc>") if sitemap_ok else 0,
         llms_txt=llms_txt,
     )
+
+
+def _enrich(result: ModuleResult, page, site: SiteFiles) -> None:
+    """Smart prioritization + one-click fix code on every open issue; one bad builder never drops the module."""
+    for check in result.checks:
+        annotate(check)
+        try:
+            check.snippet = snippet_for(check, page, site)
+        except Exception:  # noqa: BLE001 - a snippet is a bonus, never a reason to fail the audit
+            check.snippet = None
 
 
 async def audit_once(raw_url: str) -> AuditReport:
@@ -109,6 +121,7 @@ async def run_audit(raw_url: str, use_cache: bool = True) -> AsyncIterator[dict]
             except Exception as exc:  # one failing module must not sink the whole audit
                 yield {"type": "warning", "message": f"A module failed ({exc.__class__.__name__})."}
                 continue
+            _enrich(result, page, site)
             modules[result.key] = result
             yield {"type": "module", "module": result.model_dump()}
 

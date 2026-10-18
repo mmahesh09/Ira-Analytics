@@ -14,7 +14,7 @@ from .accessibility import SHOTS_DIR
 from .config import settings
 from .db import engine
 from .models import AuditRequest
-from .routers import auth, billing, monitoring, sites
+from .routers import auth, billing, content, monitoring, sites
 from .runner import run_audit
 
 app = FastAPI(title="Rankwise API", version="0.2.0")
@@ -29,6 +29,7 @@ app.include_router(auth.router)
 app.include_router(sites.router)
 app.include_router(billing.router)
 app.include_router(monitoring.router)
+app.include_router(content.router)
 
 _hits: dict[str, deque[float]] = defaultdict(deque)
 WINDOW = 600

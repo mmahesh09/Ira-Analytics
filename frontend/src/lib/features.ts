@@ -48,9 +48,9 @@ export const FEATURES: Feature[] = [
 
   // Prioritise & fix
   { slug: "opportunity-finder", name: "Website Opportunity Finder", pitch: "The fixes worth the most points, in order.", chapter: "fix", icon: Compass, status: "live" },
-  { slug: "prioritization", name: "Smart Issue Prioritization", pitch: "Ranked by severity, confidence, effort and impact.", chapter: "fix", icon: ListOrdered, status: "soon" },
+  { slug: "prioritization", name: "Smart Issue Prioritization", pitch: "Ranked by severity, confidence, effort and impact.", chapter: "fix", icon: ListOrdered, status: "live" },
   { slug: "one-click-fixes", name: "One-Click Fix Suggestions", pitch: "Ready-to-paste code and metadata for each issue.", chapter: "fix", icon: Wand2, status: "live" },
-  { slug: "ai-content", name: "AI Content Optimization", pitch: "Better titles, descriptions and headings, written for you.", chapter: "fix", icon: Sparkles, status: "soon" },
+  { slug: "ai-content", name: "AI Content Optimization", pitch: "Better titles, descriptions and headings, written for you.", chapter: "fix", icon: Sparkles, status: "live" },
 
   // Verify & monitor
   { slug: "monitoring", name: "Continuous Website Monitoring", pitch: "Audits on a schedule, so problems find you first.", chapter: "monitor", icon: Activity, status: "live" },

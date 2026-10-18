@@ -9,10 +9,12 @@ import { streamAudit } from "@/lib/api";
 import { MODULES, SCORED_MODULES, TONE_BG, TONE_LABEL, TONE_TEXT, compact, scoreTone } from "@/lib/format";
 import type { AuditReport, ModuleKey, ModuleResult } from "@/lib/types";
 import { UrlForm } from "@/components/url-form";
-import { project, rankFixes } from "@/lib/scoring";
+import { prioritize, project, rankFixes } from "@/lib/scoring";
 import { ScoreGauge, SeverityDonut, type Severity } from "./charts";
 import { CheckWaffle, ReportCover, VisibilityJourney } from "./infographics";
 import { ScoreSimulator } from "./score-simulator";
+import { OpportunityPlan } from "./opportunity-plan";
+import { RewriteTarget } from "./ai-rewrite";
 import { CheckItem, CheckList } from "./check-list";
 import { AeoExtras, GeoExtras, PerformanceExtras, SeoExtras, TrafficPanel } from "./module-panels";
 import { VisualDoctor } from "./visual-doctor";
@@ -305,14 +307,13 @@ function ProgressLog({ fetchDone, modules, elapsed }: { fetchDone: boolean; modu
 }
 
 function ReportPanel({ report, host, tab, setTab }: { report: AuditReport; host: string; tab: Tab; setTab: (t: Tab) => void }) {
-  const priorities = useMemo(
-    () =>
-      SCORED_MODULES.flatMap((key) => (report.modules[key]?.checks ?? []).map((check) => ({ check, key })))
-        .filter(({ check }) => check.status === "fail" || check.status === "warn")
-        .sort((a, b) => (a.check.status === b.check.status ? b.check.weight - a.check.weight : a.check.status === "fail" ? -1 : 1))
-        .slice(0, 10),
-    [report],
-  );
+  // Smart Issue Prioritization: impact × confidence ÷ effort
+  const ranked = useMemo(() => prioritize(report), [report]);
+  const [focus, setFocus] = useState<"all" | "quick" | "critical">("all");
+  const priorities = ranked
+    .filter((f) => (focus === "quick" ? f.effort === 1 : focus === "critical" ? f.severity === "critical" : true))
+    .slice(0, 10)
+    .map((f) => ({ check: f.check, key: f.module, gain: f.gain as number | undefined }));
   const active = tab === "overview" ? undefined : report.modules[tab];
   const traffic = report.modules.traffic;
   const all = Object.values(report.modules).flatMap((mod) => mod?.checks ?? []);
@@ -330,11 +331,13 @@ function ReportPanel({ report, host, tab, setTab }: { report: AuditReport; host:
   };
   const SEVERITY_TITLE: Record<Severity, string> = { fail: "Critical issues", warn: "Improvements", pass: "Passed checks" };
   const listed = severity
-    ? SCORED_MODULES.flatMap((key) => (report.modules[key]?.checks ?? []).filter((c) => c.status === severity).map((check) => ({ check, key })))
+    ? SCORED_MODULES.flatMap((key) => (report.modules[key]?.checks ?? []).filter((c) => c.status === severity).map((check) => ({ check, key, gain: undefined as number | undefined })))
         .sort((a, b) => b.check.weight - a.check.weight)
     : priorities;
+  const target = useMemo(() => ({ url: report.final_url, domain: report.domain }), [report]);
 
   return (
+    <RewriteTarget.Provider value={target}>
     <AnimatePresence mode="wait">
       <m.div
         key={tab}
@@ -351,6 +354,7 @@ function ReportPanel({ report, host, tab, setTab }: { report: AuditReport; host:
             <ReportCover report={report} host={host} potential={potential} fixCount={topFixes.length} onOpen={(k) => openModule(k)} />
             <VisibilityJourney report={report} onOpen={(k) => openModule(k)} />
             <ScoreBreakdown report={report} />
+            <OpportunityPlan report={report} />
             <ScoreSimulator report={report} />
 
             <div className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_320px]">
@@ -364,12 +368,35 @@ function ReportPanel({ report, host, tab, setTab }: { report: AuditReport; host:
                   )}
                 </div>
                 <p className="mt-1 text-[15px] text-ink-3">
-                  {severity ? "Filtered from the chart. Click the slice again to clear." : "The highest-impact issues across every module, most severe first."}
+                  {severity ? "Filtered from the chart. Click the slice again to clear." : "Ranked by points gained, confidence and effort. Code to paste is inside each issue."}
                 </p>
+                {!severity && (
+                  <div role="group" aria-label="Focus" className="mt-4 flex flex-wrap gap-2">
+                    {(
+                      [
+                        ["all", "All", ranked.length],
+                        ["quick", "Quick wins", ranked.filter((f) => f.effort === 1).length],
+                        ["critical", "Critical", ranked.filter((f) => f.severity === "critical").length],
+                      ] as const
+                    ).map(([key, label, n]) => (
+                      <button
+                        key={key}
+                        type="button"
+                        aria-pressed={focus === key}
+                        onClick={() => setFocus(key)}
+                        className={`inline-flex h-9 cursor-pointer items-center gap-2 rounded-full border px-4 font-sub text-[13px] font-medium transition-colors duration-200 ${
+                          focus === key ? "border-cobalt/50 bg-cobalt-soft text-ink" : "border-line text-ink-3 hover:border-line-strong hover:text-ink"
+                        }`}
+                      >
+                        {label} <span className="font-mono text-ink-3">{n}</span>
+                      </button>
+                    ))}
+                  </div>
+                )}
                 {listed.length ? (
                   <ul className="mt-5 space-y-2.5">
-                    {listed.map(({ check, key }) => (
-                      <CheckItem key={`${key}-${check.id}`} check={check} tag={MODULES[key].label} />
+                    {listed.map(({ check, key, gain }) => (
+                      <CheckItem key={`${key}-${check.id}`} check={check} tag={MODULES[key].label} gain={gain} />
                     ))}
                   </ul>
                 ) : (
@@ -438,6 +465,7 @@ function ReportPanel({ report, host, tab, setTab }: { report: AuditReport; host:
         {!active && tab !== "overview" && tab !== "traffic" && <p className="text-ink-3">This module didn&apos;t return results.</p>}
       </m.div>
     </AnimatePresence>
+    </RewriteTarget.Provider>
   );
 }
 

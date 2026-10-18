@@ -91,6 +91,25 @@ class Issue(Base):
     __table_args__ = (Index("uq_issues_site_fp", "site_id", "fingerprint", unique=True),)
 
 
+
+class Verification(Base):
+    """Before-and-After Verification: "Mark fixed" on an issue, then a fresh audit confirms it (or doesn't)."""
+
+    __tablename__ = "verifications"
+    id: Mapped[int] = mapped_column(primary_key=True)
+    site_id: Mapped[int] = mapped_column(ForeignKey("sites.id", ondelete="CASCADE"), index=True)
+    issue_id: Mapped[int] = mapped_column(ForeignKey("issues.id", ondelete="CASCADE"), index=True)
+    status: Mapped[str] = mapped_column(String(16), default="queued")  # queued | fixed | still_failing | unmeasured
+    check_status: Mapped[str | None] = mapped_column(String(8))  # the check's status in the after audit (pass/warn/fail/info/gone)
+    before_audit_id: Mapped[int | None] = mapped_column(ForeignKey("audits.id", ondelete="SET NULL"))
+    after_audit_id: Mapped[int | None] = mapped_column(ForeignKey("audits.id", ondelete="SET NULL"))
+    before_overall: Mapped[int | None] = mapped_column(Integer)
+    after_overall: Mapped[int | None] = mapped_column(Integer)
+    before_module: Mapped[int | None] = mapped_column(Integer)
+    after_module: Mapped[int | None] = mapped_column(Integer)
+    requested_at: Mapped[datetime] = _now()
+    finished_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+
 class LinkCheck(Base):
     """Latest status of every link found on a site (Broken Link Monitor)."""
 

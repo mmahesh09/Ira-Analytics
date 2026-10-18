@@ -13,10 +13,10 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from .crawler import crawl_links
 from .db import SessionLocal
 from .fetcher import AuditError
-from .monitoring import record_audit
+from .monitoring import record_audit, verify_outcome
 from .plans import ENTITLEMENTS, effective_plan
 from .runner import audit_once
-from .schema import Alert, Job, LinkCheck, Site
+from .schema import Alert, Issue, Job, LinkCheck, Site, Verification
 
 log = logging.getLogger("rankwise.jobs")
 MAX_ATTEMPTS = 3
@@ -118,7 +118,37 @@ async def handle_links(payload: dict) -> dict:
         return {"pages": len(pages), "links": len(results), "newly_broken": len(newly_broken)}
 
 
-HANDLERS = {"audit": handle_audit, "links": handle_links}
+async def handle_verify(payload: dict) -> dict:
+    """Before-and-After Verification: one fresh audit settles every pending "Mark fixed" for the site."""
+    async with SessionLocal() as db:
+        site = await db.get(Site, payload["site_id"])
+        if not site:
+            return {"skipped": "site deleted"}
+        pending = list(await db.scalars(select(Verification).where(Verification.site_id == site.id, Verification.status == "queued")))
+        if not pending:
+            return {"skipped": "nothing to verify"}
+        issues = {i.id: i for i in await db.scalars(select(Issue).where(Issue.id.in_([v.issue_id for v in pending])))}
+
+        report = await audit_once(f"https://{site.domain}/")
+        summary = await record_audit(db, site, report, "verify")  # also updates issue history and alerts
+        data = report.model_dump()
+
+        now = datetime.now(timezone.utc)
+        counts = {"fixed": 0, "still_failing": 0, "unmeasured": 0}
+        for v in pending:
+            issue = issues.get(v.issue_id)
+            status, check_status, score = verify_outcome(data, issue.module, issue.check_id) if issue else ("unmeasured", None, None)
+            v.status, v.check_status, v.after_module = status, check_status, score
+            v.after_overall, v.after_audit_id, v.finished_at = report.overall_score, summary["audit_id"], now
+            counts[status] += 1
+            if status == "fixed" and issue:
+                change = f" Score {v.before_overall} → {v.after_overall}." if v.before_overall is not None else ""
+                db.add(Alert(site_id=site.id, kind="verified", message=f"Verified fixed: {issue.title}.{change}"[:500]))
+        await db.commit()
+        return {"audit_id": summary["audit_id"], **counts}
+
+
+HANDLERS = {"audit": handle_audit, "links": handle_links, "verify": handle_verify}
 
 
 async def run(job: Job) -> str | None:

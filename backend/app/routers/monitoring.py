@@ -14,7 +14,8 @@ from ..auth import current_user, owned_site
 from ..config import settings
 from ..priority import CONFIDENCE, DEFAULT_CONFIDENCE, DEFAULT_EFFORT, EFFORT
 from ..db import get_session
-from ..schema import Alert, Audit, Issue, Job, LinkCheck, Site, User
+from ..monitoring import module_score
+from ..schema import Alert, Audit, Issue, Job, LinkCheck, Site, User, Verification
 
 router = APIRouter(tags=["monitoring"])
 
@@ -117,6 +118,66 @@ async def audit_now(site: Site = Depends(owned_site), db: AsyncSession = Depends
     queued = await jobs.enqueue(db, "audit", {"site_id": site.id, "trigger": "manual"})
     await jobs.enqueue(db, "links", {"site_id": site.id})
     return {"queued": queued is not None}
+
+
+# ---------- Before-and-After Verification ----------
+
+class VerificationOut(BaseModel):
+    id: int
+    issue_id: int
+    title: str
+    module: str
+    status: str
+    check_status: str | None
+    before_overall: int | None
+    after_overall: int | None
+    before_module: int | None
+    after_module: int | None
+    requested_at: datetime
+    finished_at: datetime | None
+
+
+def _verification_out(v: Verification, issue: Issue) -> VerificationOut:
+    return VerificationOut(
+        id=v.id, issue_id=issue.id, title=issue.title, module=issue.module, status=v.status, check_status=v.check_status,
+        before_overall=v.before_overall, after_overall=v.after_overall, before_module=v.before_module, after_module=v.after_module,
+        requested_at=v.requested_at, finished_at=v.finished_at,
+    )
+
+
+@router.post("/api/sites/{site_id}/issues/{issue_id}/verify", response_model=VerificationOut, status_code=202)
+async def verify_issue(issue_id: int, site: Site = Depends(owned_site), db: AsyncSession = Depends(get_session)):
+    """ "Mark fixed": queue a fresh audit that confirms the fix, keeping the numbers from before for comparison."""
+    issue = await db.get(Issue, issue_id)
+    if not issue or issue.site_id != site.id:
+        raise HTTPException(404, "Issue not found.")
+    if issue.status != "open":
+        raise HTTPException(409, "This issue is already resolved.")
+    existing = await db.scalar(select(Verification).where(Verification.issue_id == issue.id, Verification.status == "queued"))
+    if existing:
+        return _verification_out(existing, issue)
+
+    before = await db.get(Audit, issue.last_audit_id) if issue.last_audit_id else None
+    v = Verification(
+        site_id=site.id, issue_id=issue.id, before_audit_id=before.id if before else None,
+        before_overall=before.overall_score if before else None,
+        before_module=module_score(before.report if before else None, issue.module),
+    )
+    db.add(v)
+    await db.commit()
+    await db.refresh(v)  # requested_at comes from the database default
+    # one job per site: a pending verify job picks up every queued verification when it runs
+    await jobs.enqueue(db, "verify", {"site_id": site.id})
+    return _verification_out(v, issue)
+
+
+@router.get("/api/sites/{site_id}/verifications", response_model=list[VerificationOut])
+async def verifications(site: Site = Depends(owned_site), db: AsyncSession = Depends(get_session)):
+    rows = (await db.execute(
+        select(Verification, Issue).join(Issue, Issue.id == Verification.issue_id)
+        .where(Verification.site_id == site.id).order_by(Verification.requested_at.desc()).limit(50)
+    )).all()
+    return [_verification_out(v, issue) for v, issue in rows]
 
 
 @router.get("/api/sites/{site_id}/status", response_model=StatusOut)

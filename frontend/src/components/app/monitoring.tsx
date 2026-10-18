@@ -7,7 +7,7 @@ import { Bell, CheckCircle2, CircleAlert, CircleDot, ExternalLink, LinkIcon, Loa
 import { apiFetch } from "@/lib/api";
 import { MODULES, ago } from "@/lib/format";
 import { EFFORT_LABEL } from "@/lib/scoring";
-import type { AlertRow, AuditPoint, IssueRow, LinkRow, SiteStatus } from "@/lib/types";
+import type { AlertRow, AuditPoint, IssueRow, LinkRow, SiteStatus, VerificationRow } from "@/lib/types";
 import { COLOR } from "@/components/audit/charts";
 import { Loading, NotFound, PageHeader, useSite } from "./site-pages";
 
@@ -254,12 +254,92 @@ export function MonitoringPage() {
   );
 }
 
+const VERDICT: Record<VerificationRow["status"], { label: string; className: string }> = {
+  queued: { label: "Checking", className: "border-cobalt/30 bg-cobalt-soft text-ink" },
+  fixed: { label: "Verified fixed", className: "border-good/30 bg-good-soft text-good" },
+  still_failing: { label: "Still failing", className: "border-bad/30 bg-bad-soft text-bad" },
+  unmeasured: { label: "Couldn\u2019t measure", className: "border-line-strong bg-white/[0.03] text-ink-3" },
+};
+
+/** "before → after" with the change coloured; dashes when a side wasn't measured. */
+function BeforeAfter({ label, before, after }: { label: string; before: number | null; after: number | null }) {
+  const delta = before != null && after != null ? after - before : null;
+  return (
+    <div>
+      <p className="eyebrow text-[10px]">{label}</p>
+      <p className="mt-1 font-mono text-[15px] tabular-nums">
+        <span className="text-ink-3">{before ?? "—"}</span> <span className="text-ink-3">→</span> <span className="text-ink">{after ?? "…"}</span>
+        {delta != null && delta !== 0 && <span className={`ml-1.5 text-[12.5px] ${delta > 0 ? "text-good" : "text-bad"}`}>{delta > 0 ? `+${delta}` : delta}</span>}
+      </p>
+    </div>
+  );
+}
+
+/** Before-and-After Verification results, newest first. */
+function Verifications({ rows }: { rows: VerificationRow[] }) {
+  if (!rows.length) return null;
+  return (
+    <section className="panel rounded-xl p-6">
+      <p className="eyebrow flex items-center gap-2 text-[11px]">
+        <CheckCircle2 aria-hidden="true" className="size-3.5 text-cobalt" /> Before &amp; after
+      </p>
+      <h2 className="mt-2 text-[17px] font-medium tracking-[-0.01em]">Verified fixes</h2>
+      <p className="mt-1 text-[14px] text-ink-3">Each &ldquo;Mark fixed&rdquo; runs a fresh audit and compares it with the audit that found the issue.</p>
+      <ul className="mt-5 grid gap-3 md:grid-cols-2">
+        {rows.slice(0, 6).map((v) => (
+          <li key={v.id} className="rounded-lg border border-line bg-white/[0.015] p-4">
+            <div className="flex items-start justify-between gap-3">
+              <p className="min-w-0 text-[14px] leading-snug text-ink">{v.title}</p>
+              <span className={`shrink-0 rounded-full border px-2 py-0.5 font-sub text-[11px] font-medium ${VERDICT[v.status].className}`}>
+                {v.status === "queued" && <LoaderCircle aria-hidden="true" className="mr-1 inline size-3 animate-spin" />}
+                {VERDICT[v.status].label}
+              </span>
+            </div>
+            <div className="mt-3 grid grid-cols-2 gap-3">
+              <BeforeAfter label="Overall" before={v.before_overall} after={v.after_overall} />
+              <BeforeAfter label={MODULES[v.module]?.label ?? v.module} before={v.before_module} after={v.after_module} />
+            </div>
+            <p className="mt-2 font-sub text-[12px] text-ink-3">{v.finished_at ? `Checked ${ago(v.finished_at)}` : `Requested ${ago(v.requested_at)} · usually a minute or two`}</p>
+          </li>
+        ))}
+      </ul>
+    </section>
+  );
+}
+
 export function IssuesPage() {
   const site = useSite();
   const [tab, setTab] = useState<"open" | "resolved">("open");
   const issues = useApi<IssueRow[]>(site ? `/sites/${site.id}/issues?status=${tab}` : null);
+  const checks = useApi<VerificationRow[]>(site ? `/sites/${site.id}/verifications` : null);
+  const [error, setError] = useState<string | null>(null);
+  const checking = new Set((checks.data ?? []).filter((v) => v.status === "queued").map((v) => v.issue_id));
+  const { reload: reloadChecks } = checks;
+  const { reload: reloadIssues } = issues;
+
+  // while a verification is pending, refresh every 8 s so the verdict appears by itself
+  const waiting = checking.size > 0;
+  useEffect(() => {
+    if (!waiting) return;
+    const t = setInterval(() => {
+      reloadChecks();
+      reloadIssues();
+    }, 8000);
+    return () => clearInterval(t);
+  }, [waiting, reloadChecks, reloadIssues]);
+
   if (site === undefined) return <Loading />;
   if (site === null) return <NotFound />;
+
+  async function markFixed(issueId: number) {
+    setError(null);
+    try {
+      await apiFetch(`/sites/${site!.id}/issues/${issueId}/verify`, { method: "POST" });
+      reloadChecks();
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Couldn\u2019t start the check. Try again.");
+    }
+  }
   // open issues in fix-first order (Smart Issue Prioritization); resolved ones stay newest first
   const rows = tab === "open" ? [...(issues.data ?? [])].sort(byPriority) : (issues.data ?? []);
   return (
@@ -280,6 +360,12 @@ export function IssuesPage() {
             </button>
           ))}
         </div>
+        {checks.data && <Verifications rows={checks.data} />}
+        {error && (
+          <p role="alert" className="rounded-lg border border-bad/30 bg-bad-soft px-4 py-3 font-sub text-[13.5px] text-ink-2">
+            {error}
+          </p>
+        )}
         {!issues.data ? (
           <div className="h-48 animate-pulse rounded-xl bg-white/[0.03]" />
         ) : rows.length === 0 ? (
@@ -289,7 +375,7 @@ export function IssuesPage() {
         ) : (
           <ul className="divide-y divide-line overflow-hidden rounded-xl border border-line">
             {rows.map((i) => (
-              <li key={i.id} className="flex items-center gap-4 bg-[#0d0e0f] px-5 py-3.5">
+              <li key={i.id} className="flex items-center gap-3 bg-[#0c0c0f] px-4 py-3.5 sm:gap-4 sm:px-5">
                 {i.status === "resolved" ? (
                   <CheckCircle2 aria-hidden="true" className="size-4 shrink-0 text-good" />
                 ) : i.severity === "fail" ? (
@@ -304,7 +390,21 @@ export function IssuesPage() {
                   </span>
                 )}
                 <span className="hidden shrink-0 rounded border border-white/[0.08] px-1.5 py-0.5 font-sub text-[11px] text-ink-3 sm:inline">{MODULES[i.module]?.label ?? i.module}</span>
-                <span className="w-32 shrink-0 text-right font-sub text-[12.5px] text-ink-3">{i.resolved_at ? `fixed ${ago(i.resolved_at)}` : `since ${ago(i.first_seen_at)}`}</span>
+                <span className="hidden w-28 shrink-0 text-right font-sub text-[12.5px] text-ink-3 md:inline">{i.resolved_at ? `fixed ${ago(i.resolved_at)}` : `since ${ago(i.first_seen_at)}`}</span>
+                {i.status === "open" &&
+                  (checking.has(i.id) ? (
+                    <span className="inline-flex h-8 shrink-0 items-center gap-1.5 rounded-full border border-cobalt/30 bg-cobalt-soft px-3 font-sub text-[12.5px] text-ink">
+                      <LoaderCircle aria-hidden="true" className="size-3.5 animate-spin text-cobalt" /> Checking
+                    </span>
+                  ) : (
+                    <button
+                      type="button"
+                      onClick={() => markFixed(i.id)}
+                      className="btn-ghost inline-flex h-8 shrink-0 cursor-pointer items-center gap-1.5 rounded-full px-3 font-sub text-[12.5px]"
+                    >
+                      <CheckCircle2 aria-hidden="true" className="size-3.5" /> Mark fixed
+                    </button>
+                  ))}
               </li>
             ))}
           </ul>
@@ -361,7 +461,7 @@ export function LinksPage() {
   );
 }
 
-const ALERT_ICON = { regression: Rocket, new_issue: CircleAlert, broken_links: LinkIcon } as const;
+const ALERT_ICON = { regression: Rocket, new_issue: CircleAlert, broken_links: LinkIcon, verified: CheckCircle2 } as const;
 
 /** Bell with unread count; opens the latest alerts across all sites. */
 export function AlertsBell() {

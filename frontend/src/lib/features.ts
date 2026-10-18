@@ -57,7 +57,7 @@ export const FEATURES: Feature[] = [
   { slug: "change-detective", name: "Website Change Detective", pitch: "Audits after every deploy, with what changed.", chapter: "monitor", icon: ScanSearch, status: "live" },
   { slug: "regression-alerts", name: "Performance Regression Alerts", pitch: "Told the day your pages get slower.", chapter: "monitor", icon: BellRing, status: "live" },
   { slug: "health-history", name: "Website Health History", pitch: "Every score, new issue and fix on one timeline.", chapter: "monitor", icon: History, status: "live" },
-  { slug: "verification", name: "Before-and-After Verification", pitch: "Proof a fix worked, measured, not assumed.", chapter: "monitor", icon: BookOpenCheck, status: "soon" },
+  { slug: "verification", name: "Before-and-After Verification", pitch: "Proof a fix worked, measured, not assumed.", chapter: "monitor", icon: BookOpenCheck, status: "live" },
 
   // Understand
   { slug: "traffic", name: "Real Traffic Insights", pitch: "Search Console and Analytics, in the same place as your scores.", chapter: "understand", icon: ChartLine, status: "soon" },

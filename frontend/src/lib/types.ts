@@ -92,6 +92,22 @@ export interface IssueRow {
   confidence: number;
 }
 
+/** GET /api/sites/{id}/verifications: Before-and-After Verification */
+export interface VerificationRow {
+  id: number;
+  issue_id: number;
+  title: string;
+  module: ModuleKey;
+  status: "queued" | "fixed" | "still_failing" | "unmeasured";
+  check_status: string | null;
+  before_overall: number | null;
+  after_overall: number | null;
+  before_module: number | null;
+  after_module: number | null;
+  requested_at: string;
+  finished_at: string | null;
+}
+
 export interface LinkRow {
   url: string;
   source_url: string;

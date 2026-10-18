@@ -62,6 +62,24 @@ def measured(report: dict) -> set[str]:
     return {k for k in SCORED if ((report.get("modules") or {}).get(k) or {}).get("available")}
 
 
+def verify_outcome(report: dict, module: str, check_id: str) -> tuple[str, str | None, int | None]:
+    """Verdict for one "Mark fixed" request against a fresh audit: (status, check status, module score).
+
+    fixed: the check now passes (or no longer applies) in a module that was measured; still_failing: it's
+    still warn/fail; unmeasured: the module couldn't run this time, so we can't say either way."""
+    mod = (report.get("modules") or {}).get(module) or {}
+    if not mod.get("available"):
+        return "unmeasured", None, None
+    check = next((c for c in mod.get("checks", []) if c.get("id") == check_id), None)
+    status = check.get("status") if check else "gone"
+    return ("still_failing" if status in ("fail", "warn") else "fixed"), status, mod.get("score")
+
+
+def module_score(report: dict | None, module: str) -> int | None:
+    mod = ((report or {}).get("modules") or {}).get(module) or {}
+    return mod.get("score") if mod.get("available") else None
+
+
 def regressions(previous: dict | None, current: dict) -> list[str]:
     """Human-readable alerts for score drops and worse Core Web Vitals."""
     if not previous:

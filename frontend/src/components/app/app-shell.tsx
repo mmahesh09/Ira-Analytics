@@ -24,9 +24,12 @@ const SITE_NAV = [
   { href: "/settings", label: "Settings", icon: Settings },
 ];
 
-function SiteMark({ site }: { site: Site }) {
+function SiteMark({ site, active }: { site: Site; active?: boolean }) {
   return (
-    <span aria-hidden="true" className="grid size-5 shrink-0 place-items-center rounded-[5px] bg-white/[0.08] font-sub text-[10px] font-medium uppercase text-ink-2">
+    <span
+      aria-hidden="true"
+      className={`grid size-5 shrink-0 place-items-center rounded-[5px] font-sub text-[10px] font-medium uppercase ${active ? "bg-cobalt-fill text-white" : "bg-white/[0.08] text-ink-2"}`}
+    >
       {site.domain[0]}
     </span>
   );
@@ -44,16 +47,19 @@ function Sidebar({ user, sites, onNavigate }: { user: User | null; sites: Site[]
     router.refresh();
   }
 
-  const item = "flex h-8 items-center gap-2.5 rounded-md px-2 font-sub text-[13.5px] transition-colors duration-150";
+  const item = "relative flex h-9 items-center gap-2.5 rounded-lg px-2.5 font-sub text-[13.5px] transition-colors duration-150";
+  // current page: purple tint with a short accent bar on the left edge
+  const on = "bg-cobalt-soft text-ink before:absolute before:inset-y-2 before:-left-3 before:w-[3px] before:rounded-r before:bg-cobalt";
+  const off = "text-ink-2 hover:bg-white/[0.04] hover:text-ink";
 
   return (
-    <nav aria-label="Workspace" className="flex h-full flex-col gap-6 p-3">
-      <Link href="/app" onClick={onNavigate} className="flex h-8 items-center rounded-md px-2">
+    <nav aria-label="Workspace" className="flex h-full flex-col gap-7 p-3">
+      <Link href="/app" onClick={onNavigate} className="flex h-10 items-center rounded-md px-2.5">
         <Logo />
       </Link>
 
       <div>
-        <p className="px-2 font-sub text-[12px] text-ink-3">Sites</p>
+        <p className="eyebrow px-2.5 text-[10.5px]">Sites</p>
         <ul className="mt-1.5 space-y-0.5">
           {sites === null && [0, 1].map((i) => <li key={i} className="mx-2 my-2 h-4 animate-pulse rounded bg-white/[0.05]" />)}
           {sites?.map((s) => (
@@ -62,9 +68,9 @@ function Sidebar({ user, sites, onNavigate }: { user: User | null; sites: Site[]
                 href={`/app/${s.id}`}
                 onClick={onNavigate}
                 aria-current={active?.id === s.id ? "true" : undefined}
-                className={`${item} ${active?.id === s.id ? "bg-white/[0.06] text-ink" : "text-ink-2 hover:bg-white/[0.04] hover:text-ink"}`}
+                className={`${item} ${active?.id === s.id ? "bg-white/[0.05] text-ink" : off}`}
               >
-                <SiteMark site={s} />
+                <SiteMark site={s} active={active?.id === s.id} />
                 <span className="truncate">{s.name}</span>
               </Link>
             </li>
@@ -79,7 +85,7 @@ function Sidebar({ user, sites, onNavigate }: { user: User | null; sites: Site[]
 
       {active && (
         <div>
-          <p className="truncate px-2 font-sub text-[12px] text-ink-3">{active.domain}</p>
+          <p className="eyebrow truncate px-2.5 text-[10.5px] normal-case tracking-[0.06em]">{active.domain}</p>
           <ul className="mt-1.5 space-y-0.5">
             {SITE_NAV.map((n) => {
               const href = `/app/${active.id}${n.href}`;
@@ -90,9 +96,9 @@ function Sidebar({ user, sites, onNavigate }: { user: User | null; sites: Site[]
                     href={href}
                     onClick={onNavigate}
                     aria-current={current ? "page" : undefined}
-                    className={`${item} ${current ? "bg-white/[0.06] text-ink" : "text-ink-2 hover:bg-white/[0.04] hover:text-ink"}`}
+                    className={`${item} ${current ? on : off}`}
                   >
-                    <n.icon aria-hidden="true" className="size-4 text-ink-3" /> {n.label}
+                    <n.icon aria-hidden="true" className={`size-4 ${current ? "text-cobalt" : "text-ink-3"}`} /> {n.label}
                   </Link>
                 </li>
               );
@@ -102,20 +108,25 @@ function Sidebar({ user, sites, onNavigate }: { user: User | null; sites: Site[]
       )}
 
       <div className="mt-auto border-t border-line pt-3">
-        <div className="flex items-center justify-between gap-2">
-          <p className="truncate px-2 font-sub text-[13px] text-ink-2">{user?.name || user?.email || " "}</p>
+        <div className="flex items-center gap-2.5 px-1.5">
+          <span aria-hidden="true" className="grid size-8 shrink-0 place-items-center rounded-full bg-cobalt-fill font-sub text-[13px] font-medium uppercase text-white">
+            {(user?.name || user?.email || "?")[0]}
+          </span>
+          <span className="min-w-0 flex-1">
+            <span className="block truncate font-sub text-[13px] text-ink">{user?.name || user?.email || " "}</span>
+            {user?.name && <span className="block truncate font-sub text-[11.5px] text-ink-3">{user.email}</span>}
+          </span>
           <AlertsBell />
         </div>
-        {user?.name && <p className="truncate px-2 font-sub text-[12px] text-ink-3">{user.email}</p>}
         <Link
           href="/app/billing"
           onClick={onNavigate}
           aria-current={pathname === "/app/billing" ? "page" : undefined}
-          className={`${item} mt-2 ${pathname === "/app/billing" ? "bg-white/[0.06] text-ink" : "text-ink-3 hover:bg-white/[0.04] hover:text-ink"}`}
+          className={`${item} mt-3 ${pathname === "/app/billing" ? on : off}`}
         >
           <CreditCard aria-hidden="true" className="size-4" /> Billing
         </Link>
-        <button type="button" onClick={logout} className={`${item} w-full cursor-pointer text-ink-3 hover:bg-white/[0.04] hover:text-ink`}>
+        <button type="button" onClick={logout} className={`${item} w-full cursor-pointer ${off}`}>
           <LogOut aria-hidden="true" className="size-4" /> Log out
         </button>
       </div>
@@ -151,7 +162,7 @@ export function AppShell({ children }: { children: ReactNode }) {
   return (
     <WorkspaceContext.Provider value={{ user, sites, reload }}>
       <div className="flex min-h-dvh">
-        <aside className="sticky top-0 hidden h-dvh w-[240px] shrink-0 border-r border-line bg-surface-ink lg:block">
+        <aside className="sticky top-0 hidden h-dvh w-[248px] shrink-0 border-r border-line bg-[#0b0b0e] lg:block">
           <Sidebar user={user} sites={sites} onNavigate={() => {}} />
         </aside>
 
@@ -159,15 +170,18 @@ export function AppShell({ children }: { children: ReactNode }) {
         {open && (
           <div className="fixed inset-0 z-40 lg:hidden">
             <button type="button" aria-label="Close menu" className="absolute inset-0 bg-black/60" onClick={() => setOpen(false)} />
-            <aside className="relative h-full w-[260px] border-r border-line bg-surface-ink">
+            <aside className="relative h-full w-[264px] border-r border-line bg-[#0b0b0e]">
               <Sidebar user={user} sites={sites} onNavigate={() => setOpen(false)} />
             </aside>
           </div>
         )}
 
         <div className="flex min-w-0 flex-1 flex-col">
-          <div className="flex h-12 items-center border-b border-line px-4 lg:hidden">
-            <button type="button" aria-label={open ? "Close menu" : "Open menu"} onClick={() => setOpen((o) => !o)} className="-ml-2 grid size-10 cursor-pointer place-items-center rounded-md text-ink-2">
+          <div className="sticky top-0 z-30 flex h-14 items-center justify-between border-b border-line bg-paper/[0.85] px-4 backdrop-blur-xl lg:hidden">
+            <Link href="/app" aria-label="Rankwise home">
+              <Logo />
+            </Link>
+            <button type="button" aria-label={open ? "Close menu" : "Open menu"} onClick={() => setOpen((o) => !o)} className="-mr-2 grid size-11 cursor-pointer place-items-center rounded-full text-ink-2 hover:bg-white/[0.05]">
               {open ? <X className="size-5" /> : <Menu className="size-5" />}
             </button>
           </div>

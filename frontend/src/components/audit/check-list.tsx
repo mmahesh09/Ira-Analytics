@@ -75,24 +75,28 @@ export function CheckItem({ check, tag, gain }: { check: Check; tag?: string; ga
         className={`flex w-full items-start gap-3 p-4 text-left ${expandable ? "cursor-pointer" : "cursor-default"}`}
       >
         <Icon aria-hidden="true" className={`mt-0.5 size-5 shrink-0 ${meta.className}`} />
+        {/* title on its own line; the metadata sits underneath so long titles never get squeezed */}
         <span className="min-w-0 flex-1">
-          <span className="font-sub text-[15px] font-medium text-ink">
+          <span className="block font-sub text-[15px] font-medium leading-snug text-ink">
             <span className="sr-only">{meta.label}: </span>
             {check.title}
           </span>
-        </span>
-        {gain !== undefined && gain > 0 && <span className="shrink-0 font-mono text-[12.5px] font-medium text-good">+{gain} pts</span>}
-        {check.effort && (
-          <span className="hidden shrink-0 items-center gap-1 font-sub text-[11.5px] text-ink-3 md:inline-flex" title="Estimated effort">
-            <Clock aria-hidden="true" className="size-3" /> {EFFORT_LABEL[check.effort]}
+          <span className="mt-1.5 flex flex-wrap items-center gap-x-3 gap-y-1">
+            {check.severity ? (
+              <span className={`rounded-full px-2 py-0.5 font-sub text-[11px] font-medium ${SEVERITY_CHIP[check.severity]}`}>{SEVERITY_LABEL[check.severity]}</span>
+            ) : (
+              <span className={`rounded-full px-2 py-0.5 font-sub text-[11px] font-medium ${meta.chip}`}>{meta.label}</span>
+            )}
+            {tag && <span className="font-code text-[10.5px] uppercase tracking-[0.1em] text-ink-3">{tag}</span>}
+            {check.effort && (
+              <span className="inline-flex items-center gap-1 font-sub text-[12px] text-ink-3" title="Estimated effort">
+                <Clock aria-hidden="true" className="size-3" /> {EFFORT_LABEL[check.effort]}
+              </span>
+            )}
+            {gain !== undefined && gain > 0 && <span className="font-mono text-[12.5px] font-medium text-good">+{gain} pts</span>}
+            {check.snippet && <span className="font-code text-[10.5px] uppercase tracking-[0.1em] text-cobalt">code ready</span>}
           </span>
-        )}
-        {tag && <span className="rounded-sm bg-surface-3 px-1.5 py-0.5 font-sub text-[11px] text-ink-3">{tag}</span>}
-        {check.severity ? (
-          <span className={`hidden rounded-full px-2 py-0.5 font-sub text-[11px] font-medium sm:inline ${SEVERITY_CHIP[check.severity]}`}>{SEVERITY_LABEL[check.severity]}</span>
-        ) : (
-          <span className={`hidden rounded-full px-2 py-0.5 font-sub text-[11px] font-medium sm:inline ${meta.chip}`}>{meta.label}</span>
-        )}
+        </span>
         {expandable && (
           <ChevronDown aria-hidden="true" className={`mt-0.5 size-4 shrink-0 text-ink-3 transition-transform duration-200 ${open ? "rotate-180" : ""}`} />
         )}
@@ -104,7 +108,7 @@ export function CheckItem({ check, tag, gain }: { check: Check; tag?: string; ga
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0 }}
             transition={{ duration: 0.2, ease: [0.25, 1, 0.5, 1] }}
-            className="px-4 pb-4 pl-12"
+            className="px-4 pb-4 pl-12 pr-4 sm:pr-6"
           >
             {check.detail && <p className="break-words text-[14px] leading-relaxed text-ink-3">{check.detail}</p>}
             {check.fix && (

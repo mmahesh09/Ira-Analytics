@@ -67,7 +67,7 @@ export function BillingPage() {
   if (!billing) {
     return (
       <>
-        <PageHeader title="Billing" subtitle="Your plan and payments." />
+        <PageHeader eyebrow="Workspace" title="Billing" subtitle="Your plan and payments." />
         {error ? <p className="m-10 font-sub text-[14px] text-bad">{error}</p> : <div className="m-10 h-48 animate-pulse rounded-xl bg-white/[0.03]" />}
       </>
     );
@@ -143,7 +143,7 @@ export function BillingPage() {
 
   return (
     <>
-      <PageHeader title="Billing" subtitle={user ? `Signed in as ${user.email}` : "Your plan and payments."} />
+      <PageHeader eyebrow="Workspace" title="Billing" subtitle={user ? `Signed in as ${user.email}` : "Your plan and payments."} />
       <div className="max-w-[1080px] space-y-6 px-6 py-8 lg:px-10">
         {(error || notice) && (
           <div role={error ? "alert" : "status"} className={`flex gap-3 rounded-lg border px-4 py-3 font-sub text-[13.5px] text-ink-2 ${error ? "border-bad/30 bg-bad-soft" : "border-good/30 bg-good-soft"}`}>
@@ -233,8 +233,8 @@ export function BillingPage() {
                     type="button"
                     onClick={() => upgrade(plan.id)}
                     disabled={isCurrent || paid || busy !== null || !billing.payments_enabled}
-                    className={`mt-6 inline-flex h-10 cursor-pointer items-center justify-center gap-2 rounded-lg font-sub text-[14px] font-medium transition-colors disabled:cursor-not-allowed ${
-                      highlighted ? "bg-ink text-paper hover:bg-white disabled:bg-white/20 disabled:text-ink-3" : "border border-white/[0.12] text-ink hover:bg-white/[0.06] disabled:text-ink-3"
+                    className={`mt-6 inline-flex h-10 cursor-pointer items-center justify-center gap-2 rounded-full font-sub text-[14px] font-medium transition-colors disabled:cursor-not-allowed ${
+                      highlighted ? "btn-brand disabled:opacity-50" : "btn-ghost disabled:text-ink-3"
                     }`}
                   >
                     {busy === plan.id && <LoaderCircle aria-hidden="true" className="size-4 animate-spin" />}

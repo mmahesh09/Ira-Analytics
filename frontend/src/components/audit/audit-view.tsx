@@ -220,7 +220,7 @@ function Sidebar({
                 selected ? "text-ink" : "text-ink-3 hover:bg-white/[0.03] hover:text-ink"
               }`}
             >
-              {selected && <m.span layoutId="rail-active" className="absolute inset-0 rounded-lg border border-white/[0.1] bg-white/[0.06]" transition={{ duration: 0.3, ease: EASE }} />}
+              {selected && <m.span layoutId="rail-active" className="absolute inset-0 rounded-lg border border-cobalt/30 bg-cobalt-soft" transition={{ duration: 0.3, ease: EASE }} />}
               <span className="relative">{t === "overview" ? "Fix first" : MODULES[t].name.split(" ")[0] === "Organic" ? "Traffic" : MODULES[t].label}</span>
               <span className="relative">
                 {t === "overview" ? null : !mod && running ? (
@@ -243,13 +243,13 @@ function Sidebar({
           type="button"
           onClick={onRerun}
           disabled={running}
-          className="inline-flex h-9 flex-1 cursor-pointer items-center justify-center gap-2 rounded-lg border border-white/[0.12] bg-white/[0.03] font-sub text-[13.5px] text-ink-2 transition-colors duration-200 hover:bg-white/[0.07] hover:text-ink disabled:cursor-not-allowed disabled:opacity-50"
+          className="btn-ghost inline-flex h-10 flex-1 cursor-pointer items-center justify-center gap-2 rounded-full font-sub text-[13.5px] disabled:cursor-not-allowed disabled:opacity-50"
         >
           <RotateCcw aria-hidden="true" className="size-3.5" /> Re-run
         </button>
         <Link
           href="/#audit"
-          className="inline-flex h-9 flex-1 items-center justify-center rounded-lg bg-ink font-sub text-[13.5px] font-medium text-paper transition-colors duration-200 hover:bg-white"
+          className="btn-brand inline-flex h-10 flex-1 items-center justify-center rounded-full font-sub text-[13.5px] font-medium"
         >
           New audit
         </Link>

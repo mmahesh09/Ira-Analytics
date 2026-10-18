@@ -3,23 +3,30 @@
 import { useEffect, useState, type FormEvent, type ReactNode } from "react";
 import Link from "next/link";
 import { useParams, useRouter, useSearchParams } from "next/navigation";
-import { ArrowRight, ArrowUpRight, Check, Copy, Globe, Plus } from "lucide-react";
+import { ArrowRight, ArrowUpRight, Check, CircleAlert, CircleDot, Copy, Globe, Plus } from "lucide-react";
 import { apiFetch } from "@/lib/api";
-import type { Site } from "@/lib/types";
+import { MODULES } from "@/lib/format";
+import { EFFORT_LABEL } from "@/lib/scoring";
+import type { AuditPoint, IssueRow, Site, SiteStatus } from "@/lib/types";
 import { useWorkspace } from "./app-shell";
+import { HealthStats, HistoryChart, byPriority, useApi } from "./monitoring";
 
 const input =
   "h-10 w-full rounded-lg border border-white/[0.1] bg-white/[0.03] px-3 font-sub text-[14px] text-ink outline-none transition-[border-color,box-shadow] duration-200 placeholder:text-ink-3 focus-visible:border-white/25 focus-visible:shadow-[0_0_0_4px_rgb(255_255_255/0.05)] focus-visible:outline-none";
 const primary =
-  "inline-flex h-9 cursor-pointer items-center gap-2 rounded-lg bg-ink px-3.5 font-sub text-[13.5px] font-medium text-paper transition-colors duration-150 hover:bg-white disabled:cursor-wait disabled:opacity-70";
-const secondary =
-  "inline-flex h-9 cursor-pointer items-center gap-2 rounded-lg border border-white/[0.1] bg-white/[0.03] px-3.5 font-sub text-[13.5px] text-ink-2 transition-colors duration-150 hover:bg-white/[0.06] hover:text-ink";
+  "btn-brand inline-flex h-10 cursor-pointer items-center gap-2 rounded-full px-4 font-sub text-[13.5px] font-medium disabled:cursor-wait disabled:opacity-70";
+const secondary = "btn-ghost inline-flex h-9 cursor-pointer items-center gap-2 rounded-full px-3.5 font-sub text-[13px]";
 
-export function PageHeader({ title, subtitle, actions }: { title: string; subtitle?: ReactNode; actions?: ReactNode }) {
+export function PageHeader({ title, subtitle, actions, eyebrow }: { title: string; subtitle?: ReactNode; actions?: ReactNode; eyebrow?: string }) {
   return (
     <header className="flex flex-wrap items-end justify-between gap-4 border-b border-line px-6 pb-6 pt-8 lg:px-10">
       <div className="min-w-0">
-        <h1 className="truncate text-[26px] font-semibold tracking-[-0.03em]">{title}</h1>
+        {eyebrow && (
+          <p className="eyebrow mb-3 flex items-center gap-2 text-[11px]">
+            <span className="size-1.5 rounded-full bg-cobalt shadow-[0_0_8px_var(--cobalt)]" /> {eyebrow}
+          </p>
+        )}
+        <h1 className="truncate text-[30px] font-semibold tracking-[-0.03em]">{title}</h1>
         {subtitle && <p className="mt-1 font-sub text-[14px] text-ink-3">{subtitle}</p>}
       </div>
       {actions && <div className="flex gap-2">{actions}</div>}
@@ -103,6 +110,7 @@ export function SitesHome() {
   return (
     <>
       <PageHeader
+        eyebrow="Workspace"
         title="Sites"
         subtitle="Every site you track, in one place."
         actions={
@@ -146,9 +154,9 @@ export function SitesHome() {
 function SnippetCard({ site }: { site: Site }) {
   const [copied, setCopied] = useState(false);
   return (
-    <section className="panel rounded-xl p-6">
-      <div className="flex items-start justify-between gap-4">
-        <div>
+    <section className="panel min-w-0 rounded-xl p-6">
+      <div className="flex flex-wrap items-start justify-between gap-4">
+        <div className="min-w-0">
           <h2 className="text-[17px] font-medium tracking-[-0.01em]">Install the tracking script</h2>
           <p className="mt-1 max-w-[60ch] text-[14px] text-ink-3">
             Paste this into the <code className="font-mono text-ink-2">&lt;head&gt;</code> of every page on {site.domain}. It&apos;s under 1 KB, sets no cookies and stores no IP addresses.
@@ -168,21 +176,63 @@ function SnippetCard({ site }: { site: Site }) {
           <span aria-live="polite">{copied ? "Copied" : "Copy"}</span>
         </button>
       </div>
-      <pre className="mt-5 overflow-x-auto rounded-lg border border-white/[0.06] bg-surface-ink/70 px-4 py-3 font-[ui-monospace,SFMono-Regular,Menlo,Consolas,monospace] text-[12.5px] leading-relaxed text-ink-2">
+      <pre className="mt-5 overflow-x-auto rounded-lg border border-cobalt/20 bg-[#0b0b0e] px-4 py-3 font-code text-[12.5px] leading-relaxed text-ink-2">
         {site.snippet}
       </pre>
     </section>
   );
 }
 
+/** Top open issues in fix-first order, linking through to the full list. */
+function FixFirst({ siteId, issues }: { siteId: number; issues: IssueRow[] | null }) {
+  const top = issues ? [...issues].sort(byPriority).slice(0, 5) : null;
+  return (
+    <section className="panel min-w-0 rounded-xl p-6">
+      <div className="flex items-baseline justify-between gap-3">
+        <h2 className="text-[17px] font-medium tracking-[-0.01em]">Fix these first</h2>
+        <Link href={`/app/${siteId}/issues`} className="inline-flex items-center gap-1 font-sub text-[13px] text-ink-3 hover:text-ink">
+          All issues <ArrowRight aria-hidden="true" className="size-3.5" />
+        </Link>
+      </div>
+      <p className="mt-1 text-[14px] text-ink-3">Ranked by impact, confidence and effort.</p>
+      {!top ? (
+        <div className="mt-5 h-40 animate-pulse rounded-lg bg-white/[0.03]" />
+      ) : top.length === 0 ? (
+        <p className="mt-5 rounded-lg border border-good/30 bg-good-soft p-4 font-sub text-[13.5px] text-good">No open issues. Nice.</p>
+      ) : (
+        <ol className="mt-5 space-y-2">
+          {top.map((i, n) => (
+            <li key={i.id} className="flex items-start gap-3 rounded-lg border border-line bg-white/[0.015] px-3 py-2.5">
+              <span className="mt-0.5 font-code text-[11px] text-cobalt">{String(n + 1).padStart(2, "0")}</span>
+              {i.severity === "fail" ? <CircleAlert aria-hidden="true" className="mt-0.5 size-4 shrink-0 text-bad" /> : <CircleDot aria-hidden="true" className="mt-0.5 size-4 shrink-0 text-warn" />}
+              <span className="min-w-0 flex-1">
+                <span className="block text-[14px] leading-snug text-ink">{i.title}</span>
+                <span className="font-sub text-[12px] text-ink-3">
+                  {MODULES[i.module]?.label ?? i.module} · {EFFORT_LABEL[i.effort] ?? ""}
+                </span>
+              </span>
+            </li>
+          ))}
+        </ol>
+      )}
+    </section>
+  );
+}
+
 export function SiteOverview() {
   const site = useSite();
+  const id = site?.id;
+  const history = useApi<AuditPoint[]>(id ? `/sites/${id}/history` : null);
+  const issues = useApi<IssueRow[]>(id ? `/sites/${id}/issues?status=open` : null);
+  const status = useApi<SiteStatus>(id ? `/sites/${id}/status` : null);
   if (site === undefined) return <Loading />;
   if (site === null) return <NotFound />;
+  const points = history.data ?? [];
 
   return (
     <>
       <PageHeader
+        eyebrow="Overview"
         title={site.name}
         subtitle={
           <a href={`https://${site.domain}`} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1.5 hover:text-ink">
@@ -191,22 +241,52 @@ export function SiteOverview() {
         }
         actions={
           <Link href={`/audit?url=${encodeURIComponent(`https://${site.domain}/`)}`} className={primary}>
-            Run audit <ArrowRight aria-hidden="true" className="size-4" />
+            Full report <ArrowRight aria-hidden="true" className="size-4" />
           </Link>
         }
       />
-      <div className="grid gap-4 px-6 py-8 lg:px-10 xl:grid-cols-[1.6fr_1fr]">
-        <SnippetCard site={site} />
-        <section className="panel rounded-xl p-6">
-          <h2 className="text-[17px] font-medium tracking-[-0.01em]">Scheduled audits</h2>
-          <p className="mt-1 text-[14px] text-ink-3">SEO, AEO, GEO and Speed are re-checked automatically so you see trends, not snapshots.</p>
-          <p className="mt-5 font-sub text-[14px]">
-            Cadence: <span className="text-ink">{site.audit_cadence === "off" ? "Off" : site.audit_cadence === "daily" ? "Daily" : "Weekly"}</span>
-          </p>
-          <Link href={`/app/${site.id}/settings`} className="mt-4 inline-flex items-center gap-1.5 font-sub text-[13.5px] text-ink-3 hover:text-ink">
-            Change in settings <ArrowRight aria-hidden="true" className="size-3.5" />
-          </Link>
-        </section>
+      <div className="space-y-6 px-6 py-8 lg:px-10">
+        <HealthStats points={points} open={issues.data} status={status.data} cadence={site.audit_cadence} />
+
+        <div className="grid gap-6 xl:grid-cols-[minmax(0,1.5fr)_minmax(0,1fr)]">
+          <section className="panel min-w-0 rounded-xl p-6">
+            <div className="flex items-baseline justify-between gap-3">
+              <h2 className="text-[17px] font-medium tracking-[-0.01em]">Health trend</h2>
+              <Link href={`/app/${site.id}/monitoring`} className="inline-flex items-center gap-1 font-sub text-[13px] text-ink-3 hover:text-ink">
+                Monitoring <ArrowRight aria-hidden="true" className="size-3.5" />
+              </Link>
+            </div>
+            <div className="mt-5">
+              {points.length >= 2 ? (
+                <HistoryChart points={points} height={220} />
+              ) : (
+                <div className="grid h-[220px] place-items-center rounded-lg border border-dashed border-white/[0.1] text-center">
+                  <p className="max-w-[36ch] font-sub text-[13.5px] text-ink-3">
+                    {points.length ? "One audit so far. The trend appears after the next one." : "No audits yet. Run one from Monitoring to start the history."}
+                  </p>
+                </div>
+              )}
+            </div>
+          </section>
+          <FixFirst siteId={site.id} issues={issues.data} />
+        </div>
+
+        <div className="grid gap-6 xl:grid-cols-[minmax(0,1.5fr)_minmax(0,1fr)]">
+          <SnippetCard site={site} />
+          <section className="panel min-w-0 rounded-xl p-6">
+            <h2 className="text-[17px] font-medium tracking-[-0.01em]">Scheduled audits</h2>
+            <p className="mt-1 text-[14px] text-ink-3">SEO, AEO, GEO and Speed are re-checked automatically so you see trends, not snapshots.</p>
+            <p className="mt-5 flex items-center gap-2 font-sub text-[14px]">
+              <span className="eyebrow text-[10.5px]">Cadence</span>
+              <span className="rounded-full border border-cobalt/30 bg-cobalt-soft px-2.5 py-0.5 text-ink">
+                {site.audit_cadence === "off" ? "Off" : site.audit_cadence === "daily" ? "Daily" : "Weekly"}
+              </span>
+            </p>
+            <Link href={`/app/${site.id}/settings`} className="mt-4 inline-flex items-center gap-1.5 font-sub text-[13.5px] text-ink-3 hover:text-ink">
+              Change in settings <ArrowRight aria-hidden="true" className="size-3.5" />
+            </Link>
+          </section>
+        </div>
       </div>
     </>
   );
@@ -321,7 +401,7 @@ export function SiteSettings() {
 
   return (
     <>
-      <PageHeader title="Settings" subtitle={site.domain} />
+      <PageHeader eyebrow={site.domain} title="Settings" subtitle="Audit schedule, deploy hook and site details." />
       <div className="max-w-[720px] space-y-4 px-6 py-8 lg:px-10">
         <form onSubmit={save} className="panel space-y-6 rounded-xl p-6">
           <div>

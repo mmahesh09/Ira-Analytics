@@ -12,7 +12,7 @@ import { COLOR } from "@/components/audit/charts";
 import { Loading, NotFound, PageHeader, useSite } from "./site-pages";
 
 /** GET with reload; setState only in promise callbacks (no sync setState in effects). */
-function useApi<T>(path: string | null) {
+export function useApi<T>(path: string | null) {
   const [data, setData] = useState<T | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [tick, setTick] = useState(0);
@@ -34,16 +34,46 @@ function useApi<T>(path: string | null) {
   return { data, error, reload };
 }
 
+const BRAND = "#bf5af2";
 const SERIES: { key: keyof AuditPoint; label: string; color: string }[] = [
   { key: "seo", label: "SEO", color: COLOR.good },
   { key: "aeo", label: "AEO", color: "#3b82f6" },
   { key: "geo", label: "GEO", color: COLOR.warn },
-  { key: "speed", label: "Speed", color: "#bf5af2" },
+  { key: "speed", label: "Speed", color: "#f472b6" },
 ];
+
+/** Open issues in fix-first order (Smart Issue Prioritization): severity × confidence ÷ effort. */
+export const byPriority = (a: IssueRow, b: IssueRow) =>
+  ((b.severity === "fail" ? 1 : 0.5) * b.confidence) / b.effort - ((a.severity === "fail" ? 1 : 0.5) * a.confidence) / a.effort;
+
+/** The four numbers at the top of Overview and Monitoring. */
+export function HealthStats({ points, open, status, cadence }: { points: AuditPoint[]; open: IssueRow[] | null; status: SiteStatus | null; cadence: string }) {
+  const latest = points.at(-1);
+  const prev = points.at(-2);
+  const stats: [string, string, number | null][] = [
+    ["Health score", latest ? String(latest.overall) : "—", latest && prev ? latest.overall - prev.overall : null],
+    ["Open issues", open ? String(open.length) : "—", null],
+    ["Last audit", status?.last_audit_at ? ago(status.last_audit_at) : "Never", null],
+    ["Next audit", status?.next_audit_at ? ago(status.next_audit_at) : cadence === "off" ? "Paused" : "Soon", null],
+  ];
+  return (
+    <dl className="grid grid-cols-2 gap-px overflow-hidden rounded-xl border border-line bg-line lg:grid-cols-4">
+      {stats.map(([label, value, delta]) => (
+        <div key={label} className="bg-[#0c0c0f] p-5">
+          <dt className="eyebrow text-[10.5px]">{label}</dt>
+          <dd className="mt-2 flex items-baseline gap-2">
+            <span className="font-display text-[30px] font-semibold tracking-[-0.03em] tabular-nums">{value}</span>
+            {typeof delta === "number" && delta !== 0 && <span className={`font-mono text-[13px] ${delta > 0 ? "text-good" : "text-bad"}`}>{delta > 0 ? `+${delta}` : delta}</span>}
+          </dd>
+        </div>
+      ))}
+    </dl>
+  );
+}
 
 const dateShort = new Intl.DateTimeFormat(undefined, { day: "numeric", month: "short" });
 
-function HistoryChart({ points }: { points: AuditPoint[] }) {
+export function HistoryChart({ points, height = 260 }: { points: AuditPoint[]; height?: number }) {
   const [shown, setShown] = useState<Set<string>>(new Set());
   const data = points.map((p) => ({ ...p, label: dateShort.format(new Date(p.created_at)) }));
   const toggle = (k: string) =>
@@ -56,8 +86,8 @@ function HistoryChart({ points }: { points: AuditPoint[] }) {
   return (
     <div>
       <div className="flex flex-wrap gap-1.5" role="group" aria-label="Show module lines">
-        <span className="inline-flex items-center gap-1.5 rounded-md bg-white/[0.08] px-2.5 py-1 font-sub text-[12.5px] text-ink">
-          <span className="size-2 rounded-full bg-ink" /> Overall
+        <span className="inline-flex items-center gap-1.5 rounded-full border border-cobalt/30 bg-cobalt-soft px-3 py-1 font-sub text-[12.5px] text-ink">
+          <span className="size-2 rounded-full bg-cobalt" /> Overall
         </span>
         {SERIES.map((s) => (
           <button
@@ -65,19 +95,19 @@ function HistoryChart({ points }: { points: AuditPoint[] }) {
             type="button"
             aria-pressed={shown.has(s.key)}
             onClick={() => toggle(s.key)}
-            className={`inline-flex cursor-pointer items-center gap-1.5 rounded-md px-2.5 py-1 font-sub text-[12.5px] transition-colors ${shown.has(s.key) ? "bg-white/[0.08] text-ink" : "text-ink-3 hover:text-ink"}`}
+            className={`inline-flex cursor-pointer items-center gap-1.5 rounded-full border px-3 py-1 font-sub text-[12.5px] transition-colors ${shown.has(s.key) ? "border-white/[0.14] bg-white/[0.06] text-ink" : "border-transparent text-ink-3 hover:text-ink"}`}
           >
             <span className="size-2 rounded-full" style={{ background: s.color, opacity: shown.has(s.key) ? 1 : 0.4 }} /> {s.label}
           </button>
         ))}
       </div>
-      <div className="mt-4 h-[260px]" role="img" aria-label={`Overall score over ${points.length} audits, latest ${points.at(-1)?.overall}`}>
+      <div className="mt-4" style={{ height }} role="img" aria-label={`Overall score over ${points.length} audits, latest ${points.at(-1)?.overall}`}>
         <ResponsiveContainer>
           <AreaChart data={data} margin={{ top: 8, right: 8, bottom: 0, left: -20 }}>
             <defs>
               <linearGradient id="overallFill" x1="0" y1="0" x2="0" y2="1">
-                <stop offset="0%" stopColor={COLOR.ink} stopOpacity={0.18} />
-                <stop offset="100%" stopColor={COLOR.ink} stopOpacity={0} />
+                <stop offset="0%" stopColor={BRAND} stopOpacity={0.32} />
+                <stop offset="100%" stopColor={BRAND} stopOpacity={0} />
               </linearGradient>
             </defs>
             <CartesianGrid stroke={COLOR.line} vertical={false} />
@@ -99,7 +129,7 @@ function HistoryChart({ points }: { points: AuditPoint[] }) {
                 ) : null
               }
             />
-            <Area type="monotone" dataKey="overall" name="Overall" stroke={COLOR.ink} strokeWidth={2} fill="url(#overallFill)" dot={{ r: 2.5, fill: COLOR.ink }} activeDot={{ r: 5 }} />
+            <Area type="monotone" dataKey="overall" name="Overall" stroke={BRAND} strokeWidth={2.25} fill="url(#overallFill)" dot={{ r: 2.5, fill: BRAND }} activeDot={{ r: 5 }} />
             {SERIES.filter((s) => shown.has(s.key)).map((s) => (
               <Line key={s.key} type="monotone" dataKey={s.key} name={s.label} stroke={s.color} strokeWidth={1.5} dot={false} connectNulls />
             ))}
@@ -174,13 +204,12 @@ export function MonitoringPage() {
   }
 
   const points = history.data ?? [];
-  const latest = points.at(-1);
-  const prev = points.at(-2);
   const open = (issues.data ?? []).filter((i) => i.status === "open");
 
   return (
     <>
       <PageHeader
+        eyebrow={site.domain}
         title="Monitoring"
         subtitle={`${site.domain} · audits ${site.audit_cadence === "off" ? "paused" : site.audit_cadence}`}
         actions={
@@ -188,7 +217,7 @@ export function MonitoringPage() {
             type="button"
             onClick={auditNow}
             disabled={busy || starting}
-            className="inline-flex h-9 cursor-pointer items-center gap-2 rounded-lg bg-ink px-3.5 font-sub text-[13.5px] font-medium text-paper transition-colors hover:bg-white disabled:cursor-wait disabled:opacity-70"
+            className="btn-brand inline-flex h-10 cursor-pointer items-center gap-2 rounded-full px-4 font-sub text-[13.5px] font-medium disabled:cursor-wait disabled:opacity-70"
           >
             {busy || starting ? <LoaderCircle aria-hidden="true" className="size-4 animate-spin" /> : <Play aria-hidden="true" className="size-3.5" />}
             {busy ? (status.data!.running.length ? "Auditing…" : "Queued") : "Audit now"}
@@ -196,22 +225,7 @@ export function MonitoringPage() {
         }
       />
       <div className="space-y-6 px-6 py-8 lg:px-10">
-        <dl className="grid grid-cols-2 gap-px overflow-hidden rounded-xl border border-line bg-line lg:grid-cols-4">
-          {[
-            ["Health score", latest ? String(latest.overall) : "—", latest && prev ? latest.overall - prev.overall : null],
-            ["Open issues", issues.data ? String(open.length) : "—", null],
-            ["Last audit", status.data?.last_audit_at ? ago(status.data.last_audit_at) : "Never", null],
-            ["Next audit", status.data?.next_audit_at ? ago(status.data.next_audit_at) : site.audit_cadence === "off" ? "Paused" : "Soon", null],
-          ].map(([label, value, delta]) => (
-            <div key={label as string} className="bg-[#0d0e0f] p-5">
-              <dt className="font-sub text-[12.5px] text-ink-3">{label}</dt>
-              <dd className="mt-1 flex items-baseline gap-2">
-                <span className="font-display text-[28px] font-semibold tracking-[-0.03em] tabular-nums">{value}</span>
-                {typeof delta === "number" && delta !== 0 && <span className={`font-sub text-[13px] ${delta > 0 ? "text-good" : "text-bad"}`}>{delta > 0 ? `+${delta}` : delta}</span>}
-              </dd>
-            </div>
-          ))}
-        </dl>
+        <HealthStats points={points} open={issues.data ? open : null} status={status.data} cadence={site.audit_cadence} />
 
         <div className="grid gap-6 xl:grid-cols-[minmax(0,1.6fr)_minmax(0,1fr)]">
           <section className="panel rounded-xl p-6">
@@ -247,14 +261,12 @@ export function IssuesPage() {
   if (site === undefined) return <Loading />;
   if (site === null) return <NotFound />;
   // open issues in fix-first order (Smart Issue Prioritization); resolved ones stay newest first
-  const rows = [...(issues.data ?? [])].sort((a, b) =>
-    tab === "open" ? ((b.severity === "fail" ? 1 : 0.5) * b.confidence) / b.effort - ((a.severity === "fail" ? 1 : 0.5) * a.confidence) / a.effort : 0,
-  );
+  const rows = tab === "open" ? [...(issues.data ?? [])].sort(byPriority) : (issues.data ?? []);
   return (
     <>
-      <PageHeader title="Issues" subtitle="Every problem we've tracked. Open issues are in fix-first order: impact, confidence and effort." />
+      <PageHeader eyebrow={site.domain} title="Issues" subtitle="Every problem we've tracked. Open issues are in fix-first order: impact, confidence and effort." />
       <div className="space-y-5 px-6 py-8 lg:px-10">
-        <div role="tablist" aria-label="Issue status" className="inline-flex rounded-lg border border-white/[0.1] bg-white/[0.03] p-0.5">
+        <div role="tablist" aria-label="Issue status" className="inline-flex rounded-full border border-white/[0.1] bg-white/[0.03] p-1">
           {(["open", "resolved"] as const).map((t) => (
             <button
               key={t}
@@ -262,7 +274,7 @@ export function IssuesPage() {
               type="button"
               aria-selected={tab === t}
               onClick={() => setTab(t)}
-              className={`h-8 cursor-pointer rounded-md px-4 font-sub text-[13px] capitalize transition-colors ${tab === t ? "bg-white/[0.1] text-ink" : "text-ink-3 hover:text-ink"}`}
+              className={`h-8 cursor-pointer rounded-full px-4 font-sub text-[13px] capitalize transition-colors ${tab === t ? "bg-cobalt-soft text-ink ring-1 ring-cobalt/30" : "text-ink-3 hover:text-ink"}`}
             >
               {t}
             </button>
@@ -311,7 +323,7 @@ export function LinksPage() {
   const internal = rows.filter((r) => r.internal).length;
   return (
     <>
-      <PageHeader title="Broken links" subtitle="Checked on every scheduled audit, across your own pages and the sites you link to." />
+      <PageHeader eyebrow={site.domain} title="Broken links" subtitle="Checked on every scheduled audit, across your own pages and the sites you link to." />
       <div className="space-y-5 px-6 py-8 lg:px-10">
         {links.data && (
           <p className="font-sub text-[14px] text-ink-2">

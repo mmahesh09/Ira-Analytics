@@ -35,7 +35,7 @@ export function ScoreSimulator({ report }: { report: AuditReport }) {
       <div className="flex flex-wrap items-start justify-between gap-4">
         <div>
           <h2 id="sim-title" className="flex items-center gap-2 text-[17px] font-medium tracking-[-0.01em]">
-            <Sparkles aria-hidden="true" className="size-4 text-ink-3" /> Fix simulator
+            <Sparkles aria-hidden="true" className="size-4 text-cobalt" /> Fix simulator
           </h2>
           <p className="mt-1 text-[14px] text-ink-3">Tick the issues you plan to fix and see how far your score moves.</p>
         </div>
@@ -43,7 +43,7 @@ export function ScoreSimulator({ report }: { report: AuditReport }) {
           <button
             type="button"
             onClick={() => setFixed(new Set(candidates.slice(0, 5).map((c) => c.key)))}
-            className="inline-flex h-8 cursor-pointer items-center rounded-lg bg-ink px-3 font-sub text-[13px] font-medium text-paper transition-colors hover:bg-white"
+            className="btn-brand inline-flex h-9 cursor-pointer items-center rounded-full px-4 font-sub text-[13px] font-medium"
           >
             Pick the top 5
           </button>
@@ -51,7 +51,7 @@ export function ScoreSimulator({ report }: { report: AuditReport }) {
             type="button"
             onClick={() => setFixed(new Set())}
             disabled={!fixed.size}
-            className="inline-flex h-8 cursor-pointer items-center rounded-lg border border-white/[0.12] px-3 font-sub text-[13px] text-ink-2 transition-colors hover:bg-white/[0.05] disabled:cursor-default disabled:opacity-40"
+            className="btn-ghost inline-flex h-9 cursor-pointer items-center rounded-full px-4 font-sub text-[13px] disabled:cursor-default disabled:opacity-40"
           >
             Clear
           </button>

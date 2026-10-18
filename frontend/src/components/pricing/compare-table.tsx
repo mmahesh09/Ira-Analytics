@@ -26,7 +26,7 @@ export function CompareTable() {
   const currency = useCurrency();
 
   return (
-    <div className="overflow-x-auto rounded-xl border border-line">
+    <div className="relative overflow-x-auto rounded-xl border border-line">
       <table className="w-full min-w-[640px] border-collapse font-sub text-[14px]">
         <caption className="sr-only">Compare plans</caption>
         <thead className="bg-white/[0.02]">

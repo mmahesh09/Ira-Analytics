@@ -51,7 +51,7 @@ export default function PricingPage() {
       <section aria-labelledby="compare" className="relative border-t border-line bg-surface-ink">
         <div aria-hidden="true" className="seam absolute inset-x-0 top-0" />
         <div className="mx-auto max-w-[1200px] px-4 py-24 sm:px-6">
-          <h2 id="compare" className="text-[clamp(1.75rem,3.5vw,2.5rem)] font-semibold tracking-[-0.035em]">
+          <h2 id="compare" className="text-[clamp(1.75rem,3.5vw,2.5rem)] font-semibold tracking-[-0.025em]">
             Compare every feature
           </h2>
           <div className="mt-10">

@@ -74,7 +74,7 @@ export function ScoreGauge({ score, size = 112, label, caption, color }: { score
         <RadialBar dataKey="value" cornerRadius={size} fill={fill} background={{ fill: COLOR.track }} isAnimationActive={animate} animationDuration={DURATION} animationEasing="ease-out" />
       </RadialBarChart>
       <div className="absolute inset-0 flex flex-col items-center justify-center">
-        <span className="font-display font-semibold leading-none tracking-[-0.04em] tabular-nums" style={{ fontSize: size * 0.3, color: fill }}>
+        <span className="font-display font-semibold leading-none tracking-[-0.03em] tabular-nums" style={{ fontSize: size * 0.3, color: fill }}>
           {score}
         </span>
         {caption && <span className="mt-1 font-sub text-[11px] text-ink-3">{caption}</span>}

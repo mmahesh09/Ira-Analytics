@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { ArrowRight } from "lucide-react";
-import { Badge } from "@/components/ui/badge";
+import { splitTitle } from "@/components/marketing/chapters";
 import {
   Accordion,
   AccordionContent,
@@ -28,14 +28,14 @@ function FAQ({ title, description, items, cta }: FAQProps) {
         <div className="grid gap-12 lg:grid-cols-[1fr_1.35fr] lg:gap-20">
           <div className="flex flex-col gap-6 lg:sticky lg:top-28 lg:self-start">
             <div>
-              <Badge variant="outline" className="gap-2 border-line-strong bg-white/[0.02] font-sub font-normal text-ink-3">
+              <p className="eyebrow flex items-center gap-2.5">
                 <span className="size-1.5 rounded-full bg-cobalt shadow-[0_0_8px_var(--cobalt)]" />
                 FAQ
-              </Badge>
+              </p>
             </div>
             <div className="flex flex-col gap-4">
-              <h2 className="text-gradient max-w-xl pb-1 text-left text-[clamp(2.25rem,5vw,3.75rem)] font-semibold leading-[1.04] tracking-[-0.04em]">
-                {title}
+              <h2 className="max-w-xl text-left text-[clamp(2.25rem,5vw,3.75rem)] font-semibold leading-[1.04] tracking-[-0.03em]">
+                <span className="text-gradient pb-1">{splitTitle(title)[0]}</span> <span className="text-accent pb-1">{splitTitle(title)[1]}</span>
               </h2>
               <p className="max-w-md text-left text-[17px] leading-[1.47] text-ink-3">
                 {description}

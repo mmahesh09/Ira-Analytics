@@ -94,7 +94,7 @@ function Verify() {
         ["After", 82, "#3ccf91", "Clicks / day 171"],
       ].map(([label, h, color, note]) => (
         <div key={label as string} className="flex w-28 flex-col items-center">
-          <span className="font-display text-[34px] font-semibold tracking-[-0.04em]" style={{ color: color as string }}>
+          <span className="font-display text-[34px] font-semibold tracking-[-0.03em]" style={{ color: color as string }}>
             {h}
           </span>
           <span className="mt-2 w-full rounded-t-lg" style={{ height: `${(h as number) * 1.6}px`, background: color as string, opacity: 0.85 }} />
@@ -135,7 +135,7 @@ export function MonitorScene() {
   return (
     <div className="grid gap-16 lg:grid-cols-2">
       <div className="hidden lg:block">
-        <div className="panel sticky top-[22vh] h-[56vh] min-h-[420px] overflow-hidden rounded-[28px]">
+        <div className="panel sticky top-[20vh] h-[52vh] min-h-[400px] overflow-hidden rounded-[28px]">
           {features.map((f, i) => (
             <div
               key={f.slug}
@@ -159,14 +159,14 @@ export function MonitorScene() {
                 steps.current[i] = el;
               }}
               data-index={i}
-              className="flex min-h-[46vh] flex-col justify-center py-10 transition-opacity duration-500 lg:min-h-[64vh]"
-              style={{ opacity: i === active ? 1 : 0.32 }}
+              className="flex flex-col justify-center border-l border-white/[0.06] py-10 pl-8 transition-[opacity,border-color] duration-500 lg:min-h-[40vh]"
+              style={{ opacity: i === active ? 1 : 0.45, borderColor: i === active ? "var(--cobalt)" : undefined }}
             >
               <div className="flex items-center gap-3">
-                <Icon aria-hidden="true" className="size-5 text-ink-3" />
+                <Icon aria-hidden="true" className="size-5 text-cobalt" />
                 <StatusTag status={f.status} />
               </div>
-              <h3 className="mt-4 text-[clamp(2rem,3.6vw,2.75rem)] font-semibold leading-[1.08] tracking-[-0.035em]">{f.name}</h3>
+              <h3 className="mt-4 text-[clamp(2rem,3.6vw,2.75rem)] font-semibold leading-[1.08] tracking-[-0.025em]">{f.name}</h3>
               <p className="mt-3 max-w-[38ch] text-[19px] leading-relaxed text-ink-3">{f.pitch}</p>
               <div className="panel mt-8 rounded-2xl p-6 lg:hidden">{VISUALS[f.slug]}</div>
             </li>

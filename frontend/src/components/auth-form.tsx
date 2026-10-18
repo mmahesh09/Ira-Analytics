@@ -107,7 +107,7 @@ export function AuthForm({ mode }: { mode: "login" | "signup" }) {
 
   return (
     <div data-enter="" style={{ ["--y" as string]: "12px" }}>
-      <h1 className="text-[30px] font-semibold leading-tight tracking-[-0.035em]">{signup ? "Create your account" : "Welcome back"}</h1>
+      <h1 className="text-[30px] font-semibold leading-tight tracking-[-0.025em]">{signup ? "Create your account" : "Welcome back"}</h1>
       <p className="mt-2 text-[15px] leading-relaxed text-ink-3">
         {signup ? "Start tracking traffic, rankings and AI visibility. Free, no card needed." : "Log in to see your sites, audits and AI visibility."}
       </p>
@@ -181,7 +181,7 @@ export function AuthForm({ mode }: { mode: "login" | "signup" }) {
         <button
           type="submit"
           disabled={pending}
-          className="mt-2 flex h-11 w-full cursor-pointer items-center justify-center gap-2 btn-brand rounded-lg font-sub text-[14.5px] font-medium disabled:cursor-wait disabled:opacity-80"
+          className="mt-2 flex h-11 w-full cursor-pointer items-center justify-center gap-2 btn-brand rounded-full font-sub text-[14.5px] font-medium disabled:cursor-wait disabled:opacity-80"
         >
           {pending ? (
             <>

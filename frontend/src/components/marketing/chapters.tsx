@@ -5,15 +5,33 @@ import { CHAPTERS, type Chapter, type Feature } from "@/lib/features";
 
 /* ---------- chapter heading ---------- */
 
+/** Splits a title into a white lead and a purple tail: after the first sentence, else the first comma, else the last two words. */
+export function splitTitle(title: string): [string, string] {
+  const stop = title.indexOf(". ");
+  if (stop > 0) return [title.slice(0, stop + 1), title.slice(stop + 2)];
+  const comma = title.indexOf(", ");
+  if (comma > 0) return [title.slice(0, comma + 1), title.slice(comma + 2)];
+  const words = title.split(" ");
+  return [words.slice(0, -2).join(" "), words.slice(-2).join(" ")];
+}
+
 export function ChapterHead({ chapter, count }: { chapter: Chapter; count: number }) {
   const c = CHAPTERS[chapter];
+  // the chapters are a real sequence (detect → fix → monitor → understand → report), so the number is true
+  const n = String(Object.keys(CHAPTERS).indexOf(chapter) + 1).padStart(2, "0");
+  const [lead, tail] = splitTitle(c.title);
   return (
     <Reveal className="max-w-[880px]">
-      <p className="font-sub text-[15px] font-medium text-ink-3">
-        {c.label} <span className="opacity-70">· {count} features</span>
+      <p className="eyebrow flex items-center gap-3">
+        <span className="text-cobalt">{n}</span>
+        <span aria-hidden="true" className="h-px w-8 bg-white/15" />
+        {c.label}
+        <span className="text-ink-3/60">· {count} features</span>
       </p>
-      <h2 className="text-gradient mt-4 pb-1 text-[clamp(2.75rem,6.5vw,5rem)] font-semibold leading-[1.02] tracking-[-0.045em]">{c.title}</h2>
-      <p className="mt-6 max-w-[48ch] text-[clamp(1.125rem,1.6vw,1.375rem)] leading-relaxed text-ink-3">{c.body}</p>
+      <h2 className="mt-6 text-[clamp(2.75rem,6.5vw,5rem)] font-semibold leading-[1.02] tracking-[-0.03em]">
+        <span className="text-gradient pb-1">{lead}</span> <span className="text-accent pb-1">{tail}</span>
+      </h2>
+      <p className="mt-6 max-w-[48ch] text-[clamp(1.125rem,1.6vw,1.3125rem)] leading-relaxed text-ink-3">{c.body}</p>
     </Reveal>
   );
 }
@@ -22,21 +40,23 @@ export function ChapterHead({ chapter, count }: { chapter: Chapter; count: numbe
 
 export function StatusTag({ status }: { status: Feature["status"] }) {
   return status === "live" ? (
-    <span className="inline-flex items-center gap-1.5 font-sub text-[12px] text-good">
+    <span className="inline-flex items-center gap-1.5 rounded-full border border-good/25 bg-good-soft px-2 py-0.5 font-code text-[10.5px] uppercase tracking-[0.1em] text-good">
       <span className="size-1.5 rounded-full bg-good" /> Live
     </span>
   ) : (
-    <span className="rounded-full border border-line-strong px-2 py-0.5 font-sub text-[11.5px] text-ink-3">Coming soon</span>
+    <span className="rounded-full border border-line-strong px-2 py-0.5 font-code text-[10.5px] uppercase tracking-[0.1em] text-ink-3">Coming soon</span>
   );
 }
 
 function Tile({ feature, visual, big = false }: { feature: Feature; visual?: ReactNode; big?: boolean }) {
   const Icon = feature.icon;
   return (
-    <article className={`panel flex h-full flex-col overflow-hidden rounded-[20px] ${big ? "p-8 sm:p-10" : "p-7"}`}>
+    <article
+      className={`panel group flex h-full flex-col overflow-hidden rounded-[20px] transition-[border-color] duration-200 hover:border-white/[0.16] ${big ? "p-8 sm:p-10" : "p-7"}`}
+    >
       <div className="flex items-start justify-between gap-4">
-        <span className="grid size-10 place-items-center rounded-xl bg-surface-2">
-          <Icon aria-hidden="true" className="size-5 text-ink" />
+        <span className="grid size-10 place-items-center rounded-xl border border-cobalt/20 bg-cobalt-soft">
+          <Icon aria-hidden="true" className="size-5 text-cobalt" />
         </span>
         <StatusTag status={feature.status} />
       </div>
@@ -70,7 +90,7 @@ export function ScoreVisual() {
   return (
     <div aria-hidden="true">
       <div className="flex items-end gap-3">
-        <span className="font-display text-[84px] font-semibold leading-[0.85] tracking-[-0.06em] text-warn tabular-nums">72</span>
+        <span className="font-display text-[84px] font-semibold leading-[0.85] tracking-[-0.045em] text-warn tabular-nums">72</span>
         <span className="mb-2 font-sub text-[14px] text-ink-3">
           out of 100
           <br />
@@ -241,7 +261,7 @@ export function ReportSpread() {
           <span className="font-sub text-[12px] font-medium text-[#1d1d1f]">Acme Agency</span>
         </div>
         <p className="mt-10 font-sub text-[11px] text-[#6e6e73]">Visibility report · northwind.com</p>
-        <p className="mt-2 font-display text-[64px] font-semibold leading-none tracking-[-0.05em] text-[#a25a00]">72</p>
+        <p className="mt-2 font-display text-[64px] font-semibold leading-none tracking-[-0.035em] text-[#a25a00]">72</p>
         <p className="mt-1 text-[13px] text-[#424245]">Strong on SEO, softer on AEO. Four fixes could lift you to 86.</p>
         <p className="absolute bottom-6 left-7 font-sub text-[10px] text-[#6e6e73]">Prepared for Northwind Coffee · Oct 2026</p>
       </div>

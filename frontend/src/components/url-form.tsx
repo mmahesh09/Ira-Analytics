@@ -42,10 +42,10 @@ export function UrlForm({
         Website to audit
       </label>
       <div
-        className={`flex items-center gap-2 rounded-xl border p-1.5 pl-4 transition-[border-color,box-shadow] duration-200 ${
+        className={`flex items-center gap-2 rounded-full border p-1.5 pl-5 transition-[border-color,box-shadow] duration-200 ${
           tone === "light"
             ? "bg-white shadow-[0_1px_2px_rgb(0_0_0/0.04),0_8px_28px_rgb(0_0_0/0.07)] focus-within:border-black/25 focus-within:shadow-[0_0_0_4px_rgb(147_51_234/0.14)]"
-            : "bg-white/[0.03] focus-within:border-white/25 focus-within:shadow-[0_0_0_4px_rgb(255_255_255/0.05)]"
+            : "bg-white/[0.035] shadow-[inset_0_1px_0_rgb(255_255_255/0.05)] focus-within:border-cobalt/60 focus-within:shadow-[0_0_0_4px_rgb(191_90_242/0.15)]"
         } ${error ? "border-bad/70" : tone === "light" ? "border-black/[0.08]" : "border-white/[0.1]"}`}
       >
         <Globe aria-hidden="true" className="size-[18px] shrink-0 text-ink-3" />
@@ -69,7 +69,7 @@ export function UrlForm({
         <button
           type="submit"
           disabled={pending}
-          className="flex h-11 shrink-0 cursor-pointer items-center gap-2 btn-brand rounded-lg px-5 font-sub text-[14px] font-medium disabled:cursor-wait disabled:opacity-70"
+          className="flex h-11 shrink-0 cursor-pointer items-center gap-2 btn-brand rounded-full px-5 font-sub text-[14.5px] font-medium disabled:cursor-wait disabled:opacity-70"
         >
           {pending ? "Starting…" : "Run audit"}
           <ArrowRight aria-hidden="true" className="size-4" />

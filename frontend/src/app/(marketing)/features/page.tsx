@@ -17,9 +17,11 @@ export default function FeaturesPage() {
     <div className="theme-light">
       <section className="mx-auto max-w-[1200px] px-4 pb-16 pt-20 sm:px-6 lg:pt-32">
         <Reveal load>
-          <p className="font-sub text-[15px] font-medium text-ink-3">Features</p>
-          <h1 className="text-gradient mt-4 max-w-[14ch] pb-2 text-[clamp(3rem,8vw,6rem)] font-semibold leading-[0.98] tracking-[-0.055em]">
-            {FEATURES.length} tools. One loop.
+          <p className="eyebrow flex items-center gap-2.5">
+            <span className="size-1.5 rounded-full bg-cobalt shadow-[0_0_10px_var(--cobalt)]" /> Features
+          </p>
+          <h1 className="mt-6 max-w-[14ch] text-[clamp(3rem,8vw,6rem)] font-bold leading-[0.98] tracking-[-0.035em]">
+            <span className="text-gradient pb-2">{FEATURES.length} tools.</span> <span className="text-accent pb-2">One loop.</span>
           </h1>
           <p className="mt-6 max-w-[48ch] text-[clamp(1.125rem,1.6vw,1.375rem)] leading-relaxed text-ink-3">
             Detect, prioritise, fix, verify and monitor. {liveCount} are live today; the rest are on the way, and we&apos;ll never charge for something that isn&apos;t built.
@@ -31,7 +33,8 @@ export default function FeaturesPage() {
         <section key={chapter} aria-labelledby={`ch-${chapter}`} className="mx-auto max-w-[1200px] border-t border-line px-4 py-16 sm:px-6">
           <div className="grid gap-10 lg:grid-cols-[minmax(0,1fr)_minmax(0,2fr)]">
             <Reveal>
-              <h2 id={`ch-${chapter}`} className="text-[28px] font-semibold tracking-[-0.03em]">
+              <p className="eyebrow text-cobalt">{String(ORDER.indexOf(chapter) + 1).padStart(2, "0")}</p>
+              <h2 id={`ch-${chapter}`} className="mt-3 text-[28px] font-semibold tracking-[-0.025em]">
                 {CHAPTERS[chapter].label}
               </h2>
               <p className="mt-2 max-w-[32ch] text-[16px] leading-relaxed text-ink-3">{CHAPTERS[chapter].body}</p>
@@ -39,10 +42,10 @@ export default function FeaturesPage() {
             <Reveal delay={0.05}>
               <ul className="grid gap-4 sm:grid-cols-2">
                 {byChapter(chapter).map((f) => (
-                  <li key={f.slug} className="panel flex h-full flex-col rounded-[18px] p-6">
+                  <li key={f.slug} className="panel flex h-full flex-col rounded-[18px] p-6 transition-[border-color] duration-200 hover:border-white/[0.16]">
                     <div className="flex items-start justify-between gap-4">
-                      <span className="grid size-10 place-items-center rounded-xl bg-surface-2">
-                        <f.icon aria-hidden="true" className="size-5" />
+                      <span className="grid size-10 place-items-center rounded-xl border border-cobalt/20 bg-cobalt-soft">
+                        <f.icon aria-hidden="true" className="size-5 text-cobalt" />
                       </span>
                       <StatusTag status={f.status} />
                     </div>
@@ -57,7 +60,9 @@ export default function FeaturesPage() {
       ))}
 
       <section className="mx-auto max-w-[1200px] border-t border-line px-4 py-24 text-center sm:px-6">
-        <h2 className="text-gradient mx-auto max-w-[18ch] pb-1 text-[clamp(2.25rem,5vw,3.5rem)] font-semibold leading-[1.04] tracking-[-0.045em]">Start with a free audit.</h2>
+        <h2 className="mx-auto max-w-[18ch] text-[clamp(2.25rem,5vw,3.5rem)] font-semibold leading-[1.04] tracking-[-0.03em]">
+          <span className="text-gradient pb-1">Start with</span> <span className="text-accent pb-1">a free audit.</span>
+        </h2>
         <Link href="/#audit" className="mt-8 inline-flex h-12 items-center gap-2 btn-brand rounded-full px-7 font-sub text-[16px] font-medium">
           Audit my site <ArrowRight aria-hidden="true" className="size-4" />
         </Link>

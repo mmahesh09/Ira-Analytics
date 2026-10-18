@@ -81,7 +81,7 @@ export function ReportCover({ report, host, potential, fixCount, onOpen }: { rep
         <div className="min-w-0">
           <p className="font-sub text-[12.5px] text-ink-3">Visibility report · {host}</p>
           <div className="mt-3 flex items-end gap-4">
-            <p id="cover-title" className="font-display text-[clamp(4.5rem,9vw,7rem)] font-semibold leading-[0.85] tracking-[-0.06em] tabular-nums" style={{ color: TONE_COLOR[tone] }}>
+            <p id="cover-title" className="font-display text-[clamp(4.5rem,9vw,7rem)] font-semibold leading-[0.85] tracking-[-0.045em] tabular-nums" style={{ color: TONE_COLOR[tone] }}>
               {report.overall_score}
             </p>
             <div className="pb-2">
@@ -172,7 +172,7 @@ export function VisibilityJourney({ report, onOpen }: { report: AuditReport; onO
                 </span>
                 <span className="mt-0.5 text-[16px] font-medium tracking-[-0.01em]">{place}</span>
                 <span className="mt-2 flex items-baseline gap-1.5">
-                  <span className="font-display text-[30px] font-semibold leading-none tracking-[-0.04em] tabular-nums" style={{ color: tone ? TONE_COLOR[tone] : undefined }}>
+                  <span className="font-display text-[30px] font-semibold leading-none tracking-[-0.03em] tabular-nums" style={{ color: tone ? TONE_COLOR[tone] : undefined }}>
                     {score ?? "—"}
                   </span>
                   {tone && <span className="font-sub text-[12.5px]" style={{ color: TONE_COLOR[tone] }}>{TONE_LABEL[tone]}</span>}

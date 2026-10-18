@@ -18,7 +18,7 @@ export function AuthShowcase() {
 
       <div className="relative mx-auto w-full max-w-[440px]">
         <p className="font-sub text-[13px] text-ink-3">Your workspace</p>
-        <h2 className="text-gradient mt-3 pb-1 text-[34px] font-semibold leading-[1.1] tracking-[-0.035em]">Every site, every engine, one score.</h2>
+        <h2 className="mt-3 text-[34px] font-semibold leading-[1.1] tracking-[-0.025em]"><span className="text-gradient pb-1">Every site, every engine,</span> <span className="text-accent pb-1">one score.</span></h2>
 
         <figure aria-label="Sample report" className="panel mt-10 rounded-xl p-6">
           <div className="flex items-center justify-between">
@@ -30,7 +30,7 @@ export function AuthShowcase() {
           </div>
 
           <div className="mt-6 flex items-end gap-3">
-            <span className="font-display text-[52px] font-semibold leading-none tracking-[-0.04em]">67</span>
+            <span className="font-display text-[52px] font-semibold leading-none tracking-[-0.03em]">67</span>
             <span className="mb-1.5 font-sub text-[13px] text-ink-3">overall · <span className="text-good">+9 this month</span></span>
           </div>
 

@@ -4,10 +4,10 @@
 @custom-variant dark (&:where(.dark, .dark *));
 
 /*
-  Rankwise design tokens: dark tech
-  - Near-black with a faint blue bias (never pure black), stepped surfaces for depth
-  - One accent: electric blue. `cobalt` is the readable text/icon tone, `cobalt-fill` the button fill
-  - Type: Montserrat (headings) · Google Sans (subheadings, UI, numbers) · Lato (body)
+  Rankwise design tokens (rudraai.online palette)
+  - Zinc near-black, stepped surfaces for depth
+  - One accent: purple. `cobalt` is the readable text/icon tone, `cobalt-fill` the button fill
+  - Type: Inter Tight (display) · Google Sans (UI, body, numbers) · JetBrains Mono (labels, console)
 */
 :root {
   color-scheme: dark;
@@ -86,9 +86,11 @@
   --color-input: var(--line-strong);
   --color-ring: var(--focus);
 
-  --font-display: var(--font-inter), system-ui, sans-serif;
+  --font-display: var(--font-inter-tight), system-ui, sans-serif;
   --font-sub: var(--font-gsans), system-ui, sans-serif;
-  --font-sans: var(--font-lato), system-ui, sans-serif;
+  --font-sans: var(--font-gsans), system-ui, sans-serif;
+  /* labels, eyebrows and the audit console */
+  --font-code: var(--font-jetbrains), ui-monospace, monospace;
   /* data face: Google Sans with tabular figures (keeps the stack at three fonts) */
   --font-mono: var(--font-gsans), system-ui, sans-serif;
 
@@ -135,9 +137,9 @@
   h1,
   h2,
   h3 {
-    font-family: var(--font-inter), system-ui, sans-serif;
+    font-family: var(--font-inter-tight), system-ui, sans-serif;
     font-weight: 600;
-    letter-spacing: -0.03em;
+    letter-spacing: -0.025em;
     text-wrap: balance;
   }
 }
@@ -145,7 +147,7 @@
 body {
   background: var(--paper);
   color: var(--ink);
-  font-family: var(--font-lato), system-ui, sans-serif;
+  font-family: var(--font-gsans), system-ui, sans-serif;
   font-size: 17px;
   line-height: 1.6;
 }
@@ -172,12 +174,65 @@ body {
   background: radial-gradient(closest-side, rgb(255 255 255 / 0.07), rgb(255 255 255 / 0.02) 55%, transparent);
 }
 
-/* Linear-style headline: white fading to grey */
+/* headline: near-solid white (a whisper of falloff, not a grey fade) */
 .text-gradient {
-  background: linear-gradient(180deg, #f7f8f8 30%, rgb(247 248 248 / 0.55));
+  background: linear-gradient(180deg, #ffffff 55%, #d4d4d8);
   -webkit-background-clip: text;
   background-clip: text;
   color: transparent;
+}
+
+/* the purple second line of a headline (rudraai.online "Built to work for your business.") */
+.text-accent {
+  background: linear-gradient(90deg, #bf5af2, #d08bf5);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+
+/* mono eyebrow: "● 01 / DETECT" */
+/* in the components layer so utilities (text-cobalt, text-[11px]) can override it */
+@layer components {
+  .eyebrow {
+    font-family: var(--font-jetbrains), ui-monospace, monospace;
+    font-size: 12px;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--ink-3);
+  }
+}
+
+/* the page frame: two hairline rails on the container edges, like rudraai.online */
+.rails {
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 1; /* above opaque section backgrounds, below the header (z-30) */
+}
+.rails::before {
+  content: "";
+  position: absolute;
+  inset: 0 max(16px, calc((100% - 1200px) / 2));
+  border-inline: 1px solid rgb(255 255 255 / 0.05);
+}
+
+/* sparse starfield: static CSS dots, no canvas */
+.stars {
+  background-image:
+    radial-gradient(1px 1px at 12% 18%, rgb(255 255 255 / 0.5), transparent),
+    radial-gradient(1px 1px at 28% 72%, rgb(255 255 255 / 0.35), transparent),
+    radial-gradient(1px 1px at 46% 34%, rgb(255 255 255 / 0.3), transparent),
+    radial-gradient(1px 1px at 63% 82%, rgb(255 255 255 / 0.4), transparent),
+    radial-gradient(1px 1px at 78% 12%, rgb(255 255 255 / 0.45), transparent),
+    radial-gradient(1px 1px at 91% 56%, rgb(255 255 255 / 0.3), transparent),
+    radial-gradient(1.5px 1.5px at 7% 88%, rgb(191 90 242 / 0.6), transparent),
+    radial-gradient(1.5px 1.5px at 85% 90%, rgb(191 90 242 / 0.5), transparent);
+  background-size: 640px 640px;
+}
+
+/* soft purple light behind the hero console */
+.console-glow {
+  background: radial-gradient(closest-side, rgb(147 51 234 / 0.22), rgb(147 51 234 / 0.06) 55%, transparent);
 }
 
 /* soft top light, like Linear's hero */
@@ -233,6 +288,28 @@ body {
 }
 .btn-brand:active {
   transform: scale(0.98);
+}
+
+/* secondary action: hairline ghost */
+.btn-ghost {
+  border: 1px solid rgb(255 255 255 / 0.12);
+  background: rgb(255 255 255 / 0.03);
+  color: var(--ink);
+  transition: background-color 150ms cubic-bezier(0.25, 1, 0.5, 1), border-color 150ms cubic-bezier(0.25, 1, 0.5, 1);
+}
+.btn-ghost:hover {
+  background: rgb(255 255 255 / 0.07);
+  border-color: rgb(255 255 255 / 0.2);
+}
+
+/* blinking console caret */
+.caret {
+  animation: rw-blink 1.1s steps(1) infinite;
+}
+@keyframes rw-blink {
+  50% {
+    opacity: 0;
+  }
 }
 
 /* browser autofill: keep the dark field instead of the UA's pale blue fill */
@@ -303,6 +380,7 @@ input:-webkit-autofill:focus {
 
 @media (prefers-reduced-motion: reduce) {
   .price-swap,
+  .caret,
   [data-enter],
   .hero-tilt,
   .hero-fade,

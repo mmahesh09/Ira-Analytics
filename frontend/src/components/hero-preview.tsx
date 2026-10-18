@@ -46,7 +46,7 @@ export function HeroPreview() {
     <div aria-hidden="true" className="relative [perspective:2400px]">
       <div className="hero-tilt [mask-image:linear-gradient(to_bottom,black_55%,transparent_100%)]">
         <div className="overflow-hidden rounded-xl border border-white/[0.08] bg-surface shadow-[0_0_0_1px_rgb(0_0_0/0.4),0_40px_120px_rgb(0_0_0/0.6)]">
-          <div className="grid min-h-[560px] grid-cols-[200px_minmax(0,1fr)_240px] max-lg:grid-cols-[180px_minmax(0,1fr)] max-md:grid-cols-1">
+          <div className="grid min-h-[440px] grid-cols-[200px_minmax(0,1fr)_240px] max-lg:grid-cols-[180px_minmax(0,1fr)] max-md:grid-cols-1">
             {/* sidebar */}
             <aside className="border-r border-white/[0.06] bg-surface-ink/60 p-3 max-md:hidden">
               <div className="flex items-center gap-2 rounded-md px-2 py-1.5">

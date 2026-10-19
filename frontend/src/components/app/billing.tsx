@@ -1,6 +1,7 @@
 "use client";
 
-import { useEffect, useState, useSyncExternalStore } from "react";
+import { useEffect, useState, useSyncExternalStore, type FormEvent } from "react";
+import { authClient } from "@/lib/auth-client";
 import { Check, CircleAlert, CircleCheck, LoaderCircle } from "lucide-react";
 import { apiFetch } from "@/lib/api";
 import { AUDIT_COST, DEEP_AUDIT_COST, PACKS, PLANS, formatPrice, isPlanId, type Currency, type PlanId } from "@/lib/plans";
@@ -481,7 +482,93 @@ export function BillingPage() {
             </table>
           )}
         </section>
+
+        <DeleteAccount paidAndRenewing={paid && billing.status !== "cancelled" && !billing.cancel_at_cycle_end} />
       </div>
     </>
+  );
+}
+
+/** Self-serve account deletion: re-enter the password and type DELETE. The server refuses while a plan renews. */
+function DeleteAccount({ paidAndRenewing }: { paidAndRenewing: boolean }) {
+  const [open, setOpen] = useState(false);
+  const [password, setPassword] = useState("");
+  const [confirm, setConfirm] = useState("");
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  async function remove(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    setBusy(true);
+    setError(null);
+    const { error: failed } = await authClient.deleteUser({ password });
+    if (failed) {
+      setError(failed.message || "Couldn't delete the account. Check your password and try again.");
+      setBusy(false);
+      return;
+    }
+    window.location.href = "/";
+  }
+
+  return (
+    <section aria-labelledby="delete-heading" className="rounded-xl border border-bad/25 p-6">
+      <h2 id="delete-heading" className="text-[18px] font-medium tracking-[-0.01em]">
+        Delete account
+      </h2>
+      <p className="mt-1 max-w-[70ch] font-sub text-[13.5px] text-ink-3">
+        Permanently deletes your account, websites, reports, credits and billing history from Rankwise. This can&rsquo;t be undone.
+        {paidAndRenewing && " Cancel your paid plan first, so you aren't charged again."}
+      </p>
+      {!open ? (
+        <button
+          type="button"
+          onClick={() => setOpen(true)}
+          disabled={paidAndRenewing}
+          className="mt-4 inline-flex h-9 cursor-pointer items-center rounded-lg border border-bad/40 px-3.5 font-sub text-[13.5px] text-bad transition-colors hover:bg-bad-soft disabled:cursor-not-allowed disabled:opacity-50"
+        >
+          Delete my account
+        </button>
+      ) : (
+        <form onSubmit={remove} className="mt-4 grid max-w-[420px] gap-3">
+          <label className="font-sub text-[13px] text-ink-2">
+            Password
+            <input
+              type="password"
+              required
+              autoComplete="current-password"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              className="mt-1.5 h-10 w-full rounded-lg border border-white/[0.1] bg-white/[0.03] px-3 text-[14px] text-ink outline-none focus-visible:border-white/25"
+            />
+          </label>
+          <label className="font-sub text-[13px] text-ink-2">
+            Type DELETE to confirm
+            <input
+              required
+              value={confirm}
+              onChange={(e) => setConfirm(e.target.value)}
+              className="mt-1.5 h-10 w-full rounded-lg border border-white/[0.1] bg-white/[0.03] px-3 text-[14px] text-ink outline-none focus-visible:border-white/25"
+            />
+          </label>
+          {error && (
+            <p role="alert" className="font-sub text-[13px] text-bad">
+              {error}
+            </p>
+          )}
+          <div className="flex gap-2">
+            <button
+              type="submit"
+              disabled={busy || confirm !== "DELETE" || !password}
+              className="inline-flex h-9 cursor-pointer items-center rounded-lg bg-bad px-3.5 font-sub text-[13.5px] font-medium text-white disabled:cursor-not-allowed disabled:opacity-50"
+            >
+              {busy ? "Deleting…" : "Permanently delete"}
+            </button>
+            <button type="button" onClick={() => setOpen(false)} className="btn-ghost inline-flex h-9 cursor-pointer items-center rounded-lg px-3.5 font-sub text-[13.5px]">
+              Keep my account
+            </button>
+          </div>
+        </form>
+      )}
+    </section>
   );
 }

@@ -104,7 +104,10 @@ const SECTIONS: LegalSection[] = [
     body: (
       <ul>
         <li>Account, website and audit data: while your account is open. Deleting a website deletes its audits, issues and alerts.</li>
-        <li>After you delete your account: removed within 30 days, apart from billing records we must keep for accounting and tax (up to 8 years).</li>
+        <li>
+          When you delete your account (Billing &rarr; Delete account): your account, websites, reports, credits and billing history are removed from {COMPANY.name}{" "}
+          straight away. Razorpay keeps its own payment records as payment and tax rules require, and backups roll off within 30 days.
+        </li>
         <li>Preview limits: hashed IP counts are only needed for the day they apply to.</li>
       </ul>
     ),
@@ -116,7 +119,7 @@ const SECTIONS: LegalSection[] = [
       <>
         <p>
           You can ask to access, correct or delete your personal data, withdraw consent, or nominate someone to act for you. Write to <MailLink subject="Privacy request" />{" "}
-          from your account email; we reply within 30 days. You can delete individual websites yourself from their settings.
+          from your account email; we reply within 30 days. You can delete individual websites from their settings, and your whole account from Billing.
         </p>
         <p>
           <strong>Grievance contact:</strong> {COMPANY.name}, {COMPANY.city}, {COMPANY.region}, {COMPANY.country}, <MailLink subject="Grievance" />. If you&rsquo;re

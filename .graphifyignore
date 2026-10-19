@@ -1,0 +1,6 @@
+# Keep the knowledge graph about Rankwise itself: installed agent skills/plugins are not project code
+.claude/
+.agents/
+graphify-out/
+backend/data/
+backend/app/vendor/

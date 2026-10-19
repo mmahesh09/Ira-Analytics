@@ -37,8 +37,9 @@ export function AuditConsole() {
             <span className="size-2.5 rounded-full bg-white/[0.12]" />
           </span>
           <span className="min-w-0 truncate font-code text-[11.5px] text-ink-3">rankwise audit · northwind-coffee.com</span>
-          <span className="ml-auto flex items-center gap-1.5 font-code text-[11px] text-good">
-            <span className="size-1.5 rounded-full bg-good shadow-[0_0_8px_var(--good)]" /> live
+          {/* sample, not a real customer (item 50) */}
+          <span className="ml-auto flex shrink-0 items-center gap-1.5 rounded-full border border-line-strong px-2 py-0.5 font-sub text-[11px] text-ink-2">
+            <span className="size-1.5 rounded-full bg-warn" /> Sample audit
           </span>
         </div>
 
@@ -48,7 +49,7 @@ export function AuditConsole() {
             <li key={i} className="hero-fade flex items-center gap-3" style={{ animationDelay: `${0.5 + i * 0.18}s` }}>
               <span className={`w-3 shrink-0 text-center ${l.tone}`}>{l.mark}</span>
               <span className="min-w-0 flex-1 truncate text-ink-2">{l.text}</span>
-              <span className="shrink-0 text-[11px] uppercase tracking-[0.08em] text-ink-3/80">{l.meta}</span>
+              <span className="shrink-0 text-[11px] uppercase tracking-[0.08em] text-ink-3">{l.meta}</span>
             </li>
           ))}
           <li className="hero-fade flex items-center gap-3 text-ink-3" style={{ animationDelay: `${done}s` }}>

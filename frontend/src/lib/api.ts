@@ -24,7 +24,7 @@ export function streamAudit(url: string, onEvent: (event: AuditEvent) => void): 
     if (finished) return;
     finished = true;
     source.close();
-    onEvent({ type: "error", message: "Lost connection to the audit server. Is the backend running?" });
+    onEvent({ type: "error", message: "Our audit service isn't reachable right now, so we couldn't check this site. Please try again in a few minutes." });
   };
 
   return () => {

@@ -16,6 +16,10 @@ export interface Plan {
   /** short list on the card; Business is "Everything in Pro, plus" */
   features: string[];
   featuresIntro?: string;
+  /** features on the card that aren't built yet: shown with a "Soon" tag, never sold as available */
+  soon?: string[];
+  /** the main limits, so the difference between plans is explicit */
+  notIncluded?: string[];
 }
 
 export const PLANS: Plan[] = [
@@ -26,6 +30,7 @@ export const PLANS: Plan[] = [
     price: { usd: 0, inr: 0 },
     cta: "Start free",
     features: ["1 site", "10k pageviews a month", "Monthly SEO, AEO and GEO audits", "3 AI-visibility prompts", "6 months of data"],
+    notIncluded: ["Weekly audits and score history", "Competitor tracking"],
   },
   {
     id: "pro",
@@ -35,6 +40,8 @@ export const PLANS: Plan[] = [
     cta: "Start with Pro",
     highlight: true,
     features: ["5 sites", "100k pageviews a month", "Weekly audits with score history", "25 AI-visibility prompts", "3 competitors per site", "Google Search Console and GA4", "Email alerts", "2 years of data"],
+    soon: ["3 competitors per site", "Google Search Console and GA4", "Email alerts"],
+    notIncluded: ["Daily audits"],
   },
   {
     id: "business",
@@ -44,6 +51,7 @@ export const PLANS: Plan[] = [
     cta: "Start with Business",
     featuresIntro: "Everything in Pro, plus",
     features: ["25 sites", "1M pageviews a month", "Daily audits", "200 AI-visibility prompts", "10 competitors per site", "Priority alerts", "5 years of data"],
+    soon: ["10 competitors per site", "Priority alerts"],
   },
 ];
 

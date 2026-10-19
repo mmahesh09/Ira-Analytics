@@ -55,7 +55,7 @@ export function CurrencyToggle() {
   }
 
   return (
-    <div role="radiogroup" aria-label="Currency" onKeyDown={onKeyDown} className="inline-flex rounded-lg border border-white/[0.1] bg-white/[0.03] p-0.5">
+    <div role="radiogroup" aria-label="Currency" onKeyDown={onKeyDown} className="inline-flex rounded-full border border-white/[0.1] bg-white/[0.03] p-1">
       {OPTIONS.map((o) => {
         const checked = currency === o.value;
         return (
@@ -66,7 +66,7 @@ export function CurrencyToggle() {
             aria-checked={checked}
             tabIndex={checked ? 0 : -1}
             onClick={() => setCurrency(o.value)}
-            className={`h-8 cursor-pointer rounded-md px-3.5 font-sub text-[13px] transition-colors duration-150 ${checked ? "bg-white/[0.1] text-ink" : "text-ink-3 hover:text-ink"}`}
+            className={`h-9 cursor-pointer rounded-full px-4 font-sub text-[13.5px] transition-colors duration-150 ${checked ? "bg-cobalt-fill font-medium text-white" : "text-ink-3 hover:text-ink"}`}
           >
             {o.label}
           </button>

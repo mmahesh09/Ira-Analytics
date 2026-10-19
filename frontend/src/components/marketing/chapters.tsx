@@ -26,12 +26,12 @@ export function ChapterHead({ chapter, count }: { chapter: Chapter; count: numbe
         <span className="text-cobalt">{n}</span>
         <span aria-hidden="true" className="h-px w-8 bg-white/15" />
         {c.label}
-        <span className="text-ink-3/60">· {count} features</span>
+        <span className="text-ink-3">· {count} live</span>
       </p>
-      <h2 className="mt-6 text-[clamp(2.75rem,6.5vw,5rem)] font-semibold leading-[1.02] tracking-[-0.03em]">
+      <h2 className="t-h2 mt-5">
         <span className="text-gradient pb-1">{lead}</span> <span className="text-accent pb-1">{tail}</span>
       </h2>
-      <p className="mt-6 max-w-[48ch] text-[clamp(1.125rem,1.6vw,1.3125rem)] leading-relaxed text-ink-3">{c.body}</p>
+      <p className="t-lead mt-5 max-w-[48ch]">{c.body}</p>
     </Reveal>
   );
 }

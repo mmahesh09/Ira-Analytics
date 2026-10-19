@@ -10,12 +10,15 @@ export function UrlForm({
   autoFocus = false,
   align = "left",
   tone = "dark",
+  showLabel = false,
 }: {
   defaultValue?: string;
   autoFocus?: boolean;
   align?: "left" | "center";
   /** "light" for .theme-light sections: white field with a soft shadow */
   tone?: "dark" | "light";
+  /** visible label above the field (the hero); otherwise it is screen-reader only */
+  showLabel?: boolean;
 }) {
   const router = useRouter();
   const inputId = useId();
@@ -38,7 +41,7 @@ export function UrlForm({
 
   return (
     <form onSubmit={submit} noValidate className={`w-full max-w-[560px] ${align === "center" ? "mx-auto" : ""}`}>
-      <label htmlFor={inputId} className="sr-only">
+      <label htmlFor={inputId} className={showLabel ? "mb-2.5 block font-sub text-[14px] font-medium text-ink-2" : "sr-only"}>
         Website to audit
       </label>
       <div
@@ -56,7 +59,7 @@ export function UrlForm({
           autoComplete="url"
           spellCheck={false}
           autoFocus={autoFocus}
-          placeholder="yourcompany.com"
+          placeholder="e.g. yourcompany.com"
           value={value}
           onChange={(e) => {
             setValue(e.target.value);

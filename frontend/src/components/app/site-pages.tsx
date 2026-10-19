@@ -1,60 +1,21 @@
 "use client";
 
-import { useEffect, useState, type FormEvent, type ReactNode } from "react";
+import { useEffect, useState, type FormEvent } from "react";
 import Link from "next/link";
-import { useParams, useRouter, useSearchParams } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { ArrowRight, ArrowUpRight, Check, CircleAlert, CircleDot, Copy, Globe, Plus } from "lucide-react";
 import { apiFetch } from "@/lib/api";
 import { MODULES } from "@/lib/format";
 import { EFFORT_LABEL } from "@/lib/scoring";
 import type { AuditPoint, IssueRow, Site, SiteStatus } from "@/lib/types";
-import { useWorkspace } from "./app-shell";
 import { HealthStats, HistoryChart, byPriority, useApi } from "./monitoring";
+import { Loading, NotFound, PageHeader, useSite, useWorkspace } from "./workspace";
 
 const input =
   "h-10 w-full rounded-lg border border-white/[0.1] bg-white/[0.03] px-3 font-sub text-[14px] text-ink outline-none transition-[border-color,box-shadow] duration-200 placeholder:text-ink-3 focus-visible:border-white/25 focus-visible:shadow-[0_0_0_4px_rgb(255_255_255/0.05)] focus-visible:outline-none";
 const primary =
   "btn-brand inline-flex h-10 cursor-pointer items-center gap-2 rounded-full px-4 font-sub text-[13.5px] font-medium disabled:cursor-wait disabled:opacity-70";
 const secondary = "btn-ghost inline-flex h-9 cursor-pointer items-center gap-2 rounded-full px-3.5 font-sub text-[13px]";
-
-export function PageHeader({ title, subtitle, actions, eyebrow }: { title: string; subtitle?: ReactNode; actions?: ReactNode; eyebrow?: string }) {
-  return (
-    <header className="flex flex-wrap items-end justify-between gap-4 border-b border-line px-6 pb-6 pt-8 lg:px-10">
-      <div className="min-w-0">
-        {eyebrow && (
-          <p className="eyebrow mb-3 flex items-center gap-2 text-[11px]">
-            <span className="size-1.5 rounded-full bg-cobalt shadow-[0_0_8px_var(--cobalt)]" /> {eyebrow}
-          </p>
-        )}
-        <h1 className="truncate text-[30px] font-semibold tracking-[-0.03em]">{title}</h1>
-        {subtitle && <p className="mt-1 font-sub text-[14px] text-ink-3">{subtitle}</p>}
-      </div>
-      {actions && <div className="flex gap-2">{actions}</div>}
-    </header>
-  );
-}
-
-export function useSite(): Site | null | undefined {
-  const { siteId } = useParams<{ siteId: string }>();
-  const { sites } = useWorkspace();
-  if (sites === null) return undefined; // loading
-  return sites.find((s) => String(s.id) === siteId) ?? null;
-}
-
-export function Loading() {
-  return <div className="m-10 h-40 animate-pulse rounded-xl bg-white/[0.03]" />;
-}
-
-export function NotFound() {
-  return (
-    <div className="px-6 py-24 text-center lg:px-10">
-      <p className="text-[18px] font-medium">Site not found</p>
-      <Link href="/app" className="mt-3 inline-block font-sub text-[14px] text-ink-3 hover:text-ink">
-        Back to sites
-      </Link>
-    </div>
-  );
-}
 
 function AddSiteForm({ onDone }: { onDone?: () => void }) {
   const router = useRouter();

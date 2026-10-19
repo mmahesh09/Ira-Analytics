@@ -9,7 +9,7 @@ import { MODULES, ago } from "@/lib/format";
 import { EFFORT_LABEL } from "@/lib/scoring";
 import type { AlertRow, AuditPoint, IssueRow, LinkRow, SiteStatus, VerificationRow } from "@/lib/types";
 import { COLOR } from "@/components/audit/charts";
-import { Loading, NotFound, PageHeader, useSite } from "./site-pages";
+import { Loading, NotFound, PageHeader, useSite } from "./workspace";
 
 /** GET with reload; setState only in promise callbacks (no sync setState in effects). */
 export function useApi<T>(path: string | null) {

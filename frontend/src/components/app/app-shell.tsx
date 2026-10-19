@@ -1,19 +1,15 @@
 "use client";
 
-import { createContext, useCallback, useContext, useEffect, useState, type ReactNode } from "react";
+import { useCallback, useEffect, useState, type ReactNode } from "react";
 import Link from "next/link";
 import { useParams, usePathname, useRouter } from "next/navigation";
 import { Activity, CircleAlert, CreditCard, LayoutGrid, LogOut, Menu, Plus, Settings, Unlink, X } from "lucide-react";
 import { AlertsBell } from "./monitoring";
+import { WorkspaceContext } from "./workspace";
 import { Logo } from "@/components/site-header";
 import { apiFetch } from "@/lib/api";
 import { authClient } from "@/lib/auth-client";
 import type { Site, User } from "@/lib/types";
-
-type Workspace = { user: User | null; sites: Site[] | null; reload: () => Promise<void> };
-const WorkspaceContext = createContext<Workspace>({ user: null, sites: null, reload: async () => {} });
-
-export const useWorkspace = () => useContext(WorkspaceContext);
 
 /** Tabs for the selected site. Later phases append Traffic, Search, Audits, AI visibility and Competitors. */
 const SITE_NAV = [

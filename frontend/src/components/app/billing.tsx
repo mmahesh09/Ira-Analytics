@@ -6,8 +6,7 @@ import { apiFetch } from "@/lib/api";
 import { PLANS, formatPrice, isPlanId, type Currency, type PlanId } from "@/lib/plans";
 import type { Billing } from "@/lib/types";
 import { CurrencyToggle, useCurrency } from "@/components/pricing/currency";
-import { PageHeader } from "./site-pages";
-import { useWorkspace } from "./app-shell";
+import { PageHeader, useWorkspace } from "./workspace";
 
 type Subscribe = { subscription_id: string; key_id: string; plan: PlanId; currency: Currency; prefill: Record<string, string> };
 type CheckoutSuccess = { razorpay_payment_id: string; razorpay_subscription_id: string; razorpay_signature: string };

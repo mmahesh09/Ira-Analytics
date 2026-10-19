@@ -41,6 +41,8 @@ class Settings:
 
     database_url: str = async_db_url(os.getenv("DATABASE_URL", "postgresql+asyncpg://postgres:postgres@localhost:5432/rankwise"))
     # run the job loop inside the API process (single-container hosts such as Render's free tier)
+    # Neon Object Storage bucket for Visual Doctor screenshots (credentials come from the AWS_* variables)
+    shots_bucket: str = os.getenv("SHOTS_BUCKET", "assets")
     embedded_worker: bool = os.getenv("EMBEDDED_WORKER", "false").lower() == "true"
     public_api_url: str = os.getenv("PUBLIC_API_URL", "http://localhost:8000")
 

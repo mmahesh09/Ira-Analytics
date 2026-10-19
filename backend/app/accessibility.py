@@ -15,9 +15,9 @@ from .common import score_checks
 from .config import settings
 from .models import Check, ModuleResult
 from .performance import _browser_path
+from .storage import save_shot
 
 AXE_JS = (Path(__file__).parent / "vendor" / "axe.min.js").read_text(encoding="utf-8")
-SHOTS_DIR = Path(__file__).resolve().parent.parent / "data" / "shots"
 VIEWPORT = {"width": 1280, "height": 800}
 MAX_SHOT_HEIGHT = 4000
 IMPACT_WEIGHT = {"critical": 4, "serious": 3, "moderate": 2, "minor": 1}
@@ -74,9 +74,9 @@ async def analyze_accessibility(url: str) -> ModuleResult:
 
                 doc_height = await page.evaluate("document.documentElement.scrollHeight")
                 shot_height = min(doc_height, MAX_SHOT_HEIGHT)
-                SHOTS_DIR.mkdir(parents=True, exist_ok=True)
                 name = f"{uuid.uuid4().hex}.jpg"
-                await page.screenshot(path=SHOTS_DIR / name, type="jpeg", quality=62, full_page=True, clip={"x": 0, "y": 0, "width": VIEWPORT["width"], "height": shot_height})
+                shot = await page.screenshot(type="jpeg", quality=62, full_page=True, clip={"x": 0, "y": 0, "width": VIEWPORT["width"], "height": shot_height})
+                await save_shot(name, shot)  # Neon Object Storage when configured, local disk otherwise
             finally:
                 await browser.close()
     except (PlaywrightError, TimeoutError) as exc:

@@ -51,6 +51,9 @@ The Space builds the Docker image (about 5 minutes the first time).
 | Variable | `EMBEDDED_WORKER` | `true` (scheduled audits run inside the API) |
 | Variable | `CORS_ORIGINS` | `https://rankwise-xi.vercel.app,https://rankwise.rudrai-gowri.workers.dev` |
 | Variable | `PUBLIC_API_URL` | `https://<your-username>-rankwise-api.hf.space` |
+| Secret | `AWS_ACCESS_KEY_ID`, `AWS_SECRET_ACCESS_KEY` | Neon Object Storage keys (optional; screenshots are lost on restart without them) |
+| Variable | `AWS_ENDPOINT_URL_S3`, `AWS_REGION` | Neon Object Storage endpoint and region |
+| Variable | `SHOTS_BUCKET` | `assets` (the bucket declared in `frontend/neon.ts`) |
 
 Then **Restart** the Space. Check `https://<your-username>-rankwise-api.hf.space/api/health`.
 

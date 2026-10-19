@@ -8,16 +8,16 @@ from contextlib import asynccontextmanager, suppress
 
 from fastapi import FastAPI, HTTPException, Query, Request
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import FileResponse, StreamingResponse
+from fastapi.responses import Response, StreamingResponse
 
 from sqlalchemy import text
 
-from .accessibility import SHOTS_DIR
 from .config import settings
 from .db import engine
 from .models import AuditRequest
 from .routers import auth, billing, content, monitoring, sites
 from .runner import run_audit
+from .storage import load_shot
 from .worker import run_forever
 
 @asynccontextmanager
@@ -78,12 +78,12 @@ SHOT_NAME = re.compile(r"^[0-9a-f]{32}\.jpg$")
 
 
 @app.get("/api/shots/{name}")
-def screenshot(name: str):
+async def screenshot(name: str):
     """Visual Website Doctor screenshots (random 128-bit names, so they can't be guessed or enumerated)."""
-    path = SHOTS_DIR / name
-    if not SHOT_NAME.match(name) or not path.is_file():
+    data = await load_shot(name) if SHOT_NAME.match(name) else None
+    if data is None:
         raise HTTPException(404, "Screenshot not found.")
-    return FileResponse(path, media_type="image/jpeg", headers={"Cache-Control": "public, max-age=604800, immutable"})
+    return Response(data, media_type="image/jpeg", headers={"Cache-Control": "public, max-age=604800, immutable"})
 
 
 @app.get("/api/health")

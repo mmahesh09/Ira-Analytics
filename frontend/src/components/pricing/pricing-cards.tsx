@@ -84,7 +84,7 @@ export function PricingCards() {
       </ul>
       <p className="mt-6 max-w-[80ch] font-sub text-[13px] leading-relaxed text-ink-3">
         A full audit uses 1 credit; light checks and opening saved reports are free. Monthly credits don&rsquo;t roll over. Paid plans are billed monthly
-        through Razorpay, plus GST where applicable. Cancel anytime and keep your plan until the end of the period.
+        through Razorpay. No refunds; cancel anytime and keep your plan until the end of the period.
       </p>
     </div>
   );

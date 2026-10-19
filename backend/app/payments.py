@@ -57,6 +57,24 @@ async def cancel_subscription(subscription_id: str) -> dict:
     return await _request("POST", f"/subscriptions/{subscription_id}/cancel", json={"cancel_at_cycle_end": 1})
 
 
+async def update_subscription(subscription_id: str, razorpay_plan_id: str, schedule_change_at: str) -> dict:
+    """Switches plan: "now" (upgrade) or "cycle_end" (downgrade). Razorpay refuses this for some payment
+    methods (e.g. UPI Autopay mandates); the error message is passed on as a PaymentsError."""
+    return await _request(
+        "PATCH", f"/subscriptions/{subscription_id}",
+        json={"plan_id": razorpay_plan_id, "quantity": 1, "schedule_change_at": schedule_change_at, "customer_notify": 1},
+    )
+
+
+async def create_order(amount: int, currency: str, receipt: str, notes: dict[str, str]) -> dict:
+    """One-time payment (credit packs). amount is in the smallest unit (paise / cents)."""
+    return await _request("POST", "/orders", json={"amount": amount, "currency": currency.upper(), "receipt": receipt[:40], "notes": notes})
+
+
+async def fetch_payment(payment_id: str) -> dict:
+    return await _request("GET", f"/payments/{payment_id}")
+
+
 def _hmac(secret: str, message: bytes) -> str:
     return hmac.new(secret.encode(), message, hashlib.sha256).hexdigest()
 
@@ -67,6 +85,13 @@ def verify_payment_signature(payment_id: str, subscription_id: str, signature: s
         return False
     expected = _hmac(settings.razorpay_key_secret, f"{payment_id}|{subscription_id}".encode())
     return hmac.compare_digest(expected, signature)
+
+
+def verify_order_signature(order_id: str, payment_id: str, signature: str) -> bool:
+    """Checkout success for an Order: signature = HMAC_SHA256(order_id + "|" + payment_id, key_secret)."""
+    if not settings.razorpay_key_secret or not signature:
+        return False
+    return hmac.compare_digest(_hmac(settings.razorpay_key_secret, f"{order_id}|{payment_id}".encode()), signature)
 
 
 def verify_webhook_signature(raw_body: bytes, signature: str) -> bool:

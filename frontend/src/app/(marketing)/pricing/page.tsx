@@ -40,7 +40,12 @@ const FAQS: FAQItem[] = [
   },
   {
     question: "Which currencies can I pay in?",
-    answer: "INR by card, UPI Autopay or netbanking, plus GST where applicable. USD for international cards is offered only where it's enabled; INR prices are set locally, not converted live.",
+    answer: "INR by card, UPI Autopay or netbanking, at the listed price. USD for international cards is offered only where it's enabled; INR prices are set locally, not converted live.",
+  },
+  {
+    question: "Can I get a refund?",
+    answer:
+      "Subscriptions aren't refunded, but you can cancel anytime and keep your plan until the end of the period you've paid for. A credit pack can be refunded within 7 days of purchase if none of its credits have been used; write to us from the contact page.",
   },
   {
     question: "How do I cancel?",

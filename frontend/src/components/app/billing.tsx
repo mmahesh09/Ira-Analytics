@@ -4,12 +4,14 @@ import { useEffect, useState, useSyncExternalStore } from "react";
 import { Check, CircleAlert, CircleCheck, LoaderCircle } from "lucide-react";
 import { apiFetch } from "@/lib/api";
 import { AUDIT_COST, DEEP_AUDIT_COST, PACKS, PLANS, formatPrice, isPlanId, type Currency, type PlanId } from "@/lib/plans";
-import type { Billing } from "@/lib/types";
+import type { Billing, PaymentRow } from "@/lib/types";
 import { CurrencyToggle, useCurrency } from "@/components/pricing/currency";
 import { PageHeader, useWorkspace } from "./workspace";
 
 type Subscribe = { subscription_id: string; key_id: string; plan: PlanId; currency: Currency; prefill: Record<string, string> };
 type CheckoutSuccess = { razorpay_payment_id: string; razorpay_subscription_id: string; razorpay_signature: string };
+type PackOrder = { order_id: string; key_id: string; amount: number; currency: Currency; credits: number; prefill: Record<string, string> };
+type PackSuccess = { razorpay_order_id: string; razorpay_payment_id: string; razorpay_signature: string };
 type RazorpayInstance = { open(): void; on(event: string, cb: (resp: { error?: { description?: string } }) => void): void };
 
 declare global {
@@ -47,7 +49,8 @@ const dateFmt = new Intl.DateTimeFormat(undefined, { day: "numeric", month: "sho
 export function BillingPage() {
   const { user, sites } = useWorkspace();
   const [billing, setBilling] = useState<Billing | null>(null);
-  const [busy, setBusy] = useState<PlanId | "cancel" | null>(null);
+  const [busy, setBusy] = useState<string | null>(null);
+  const [history, setHistory] = useState<PaymentRow[] | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
   const chosenCurrency = useCurrency();
@@ -58,10 +61,15 @@ export function BillingPage() {
     apiFetch<Billing>("/billing")
       .then((b) => live && setBilling(b))
       .catch((e) => live && setError(e instanceof Error ? e.message : "Couldn't load billing."));
+    apiFetch<PaymentRow[]>("/billing/payments")
+      .then((p) => live && setHistory(p))
+      .catch(() => live && setHistory([]));
     return () => {
       live = false;
     };
   }, []);
+
+  const reloadHistory = () => apiFetch<PaymentRow[]>("/billing/payments").then(setHistory).catch(() => {});
 
   if (!billing) {
     return (
@@ -87,7 +95,68 @@ export function BillingPage() {
     }
   }
 
+  /** On a paid plan: upgrade now (extra credits added at once) or downgrade at the end of the period. */
+  async function changePlan(plan: PlanId) {
+    const target = PLANS.find((p) => p.id === plan)!;
+    const up = PLANS.findIndex((p) => p.id === plan) > PLANS.findIndex((p) => p.id === billing!.plan);
+    const ends = billing?.current_end ? dateFmt.format(new Date(billing.current_end)) : "the end of this period";
+    const message = up
+      ? `Upgrade to ${target.name} now? Razorpay adjusts this month's charge, and the extra audit credits are added straight away.`
+      : `Switch to ${target.name} on ${ends}? You keep ${current.name} and its credits until then.`;
+    if (!window.confirm(message)) return;
+    setError(null);
+    setNotice(null);
+    setBusy(plan);
+    try {
+      setBilling(await apiFetch<Billing>("/billing/change-plan", { body: { plan } }));
+      setNotice(up ? `You're on ${target.name}. The extra credits are in your balance.` : `Done. You'll move to ${target.name} on ${ends}.`);
+      reloadHistory();
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Couldn't change plan. Try again.");
+    } finally {
+      setBusy(null);
+    }
+  }
+
+  async function buyPack(packId: string) {
+    setError(null);
+    setNotice(null);
+    setBusy(packId);
+    try {
+      await loadCheckout();
+      const order = await apiFetch<PackOrder>(`/billing/packs/${packId}/order`, { body: { currency } });
+      const checkout = new window.Razorpay!({
+        key: order.key_id,
+        order_id: order.order_id,
+        amount: order.amount,
+        currency: order.currency.toUpperCase(),
+        name: "Rankwise",
+        description: `${order.credits} audit credits (valid 12 months)`,
+        prefill: order.prefill,
+        theme: { color: "#0f1011" },
+        handler: async (response: PackSuccess) => {
+          try {
+            setBilling(await apiFetch<Billing>("/billing/packs/verify", { body: response }));
+            setNotice(`${order.credits} audit credits added. They're used after your monthly credits and last 12 months.`);
+            reloadHistory();
+          } catch (e) {
+            setError(e instanceof Error ? e.message : "We couldn't confirm the payment yet. The credits will appear automatically.");
+          } finally {
+            setBusy(null);
+          }
+        },
+        modal: { ondismiss: () => setBusy(null) },
+      });
+      checkout.on("payment.failed", (resp) => setError(resp.error?.description || "The payment didn't go through. Nothing was charged."));
+      checkout.open();
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Couldn't start checkout.");
+      setBusy(null);
+    }
+  }
+
   async function upgrade(plan: PlanId) {
+    if (paid) return changePlan(plan);
     setError(null);
     setNotice(null);
     setBusy(plan);
@@ -167,6 +236,11 @@ export function BillingPage() {
                 : paid
                   ? "Activating…"
                   : "Free forever for one site."}
+              {billing.scheduled_plan && billing.current_end && !billing.cancel_at_cycle_end && (
+                <span className="block">
+                  Switching to {PLANS.find((p) => p.id === billing.scheduled_plan)?.name} on {dateFmt.format(new Date(billing.current_end))}.
+                </span>
+              )}
             </p>
           </div>
           <dl className="grid grid-cols-2 gap-x-10 gap-y-3 font-sub text-[13.5px] sm:grid-cols-3">
@@ -245,8 +319,9 @@ export function BillingPage() {
                     <li key={pack.id}>
                       <button
                         type="button"
-                        disabled
-                        className="btn-ghost inline-flex w-full cursor-not-allowed flex-col items-start rounded-lg px-3.5 py-2.5 text-left disabled:text-ink-3"
+                        onClick={() => buyPack(pack.id)}
+                        disabled={!billing.payments_enabled || busy !== null}
+                        className="btn-ghost inline-flex w-full cursor-pointer flex-col items-start rounded-lg px-3.5 py-2.5 text-left disabled:cursor-not-allowed disabled:text-ink-3"
                       >
                         <span className="font-sub text-[14px] font-medium">{pack.credits} credits</span>
                         <span className="font-sub text-[12.5px] tabular-nums">{formatPrice(pack.price[currency], currency)}</span>
@@ -254,7 +329,11 @@ export function BillingPage() {
                     </li>
                   ))}
                 </ul>
-                <p className="mt-2 font-sub text-[12.5px] text-ink-3">Credit packs go on sale when payments are switched on. They last 12 months.</p>
+                <p className="mt-2 font-sub text-[12.5px] text-ink-3">
+                  {billing.payments_enabled
+                    ? "One-time purchase. Used after your monthly credits, valid 12 months; refundable within 7 days if unused."
+                    : "Credit packs go on sale when payments are switched on."}
+                </p>
               </div>
             )}
           </div>
@@ -335,20 +414,72 @@ export function BillingPage() {
                   <button
                     type="button"
                     onClick={() => upgrade(plan.id)}
-                    disabled={isCurrent || paid || busy !== null || !billing.payments_enabled}
+                    disabled={isCurrent || busy !== null || !billing.payments_enabled || (paid && billing.status !== "active") || billing.scheduled_plan === plan.id}
                     className={`mt-6 inline-flex h-10 cursor-pointer items-center justify-center gap-2 rounded-full font-sub text-[14px] font-medium transition-colors disabled:cursor-not-allowed ${
                       highlighted ? "btn-brand disabled:opacity-50" : "btn-ghost disabled:text-ink-3"
                     }`}
                   >
                     {busy === plan.id && <LoaderCircle aria-hidden="true" className="size-4 animate-spin" />}
-                    {isCurrent ? "Current plan" : busy === plan.id ? "Opening checkout…" : `Upgrade to ${plan.name}`}
+                    {isCurrent
+                      ? "Current plan"
+                      : billing.scheduled_plan === plan.id
+                        ? "Starts next period"
+                        : busy === plan.id
+                          ? paid
+                            ? "Switching…"
+                            : "Opening checkout…"
+                          : paid && PLANS.findIndex((p) => p.id === plan.id) < PLANS.findIndex((p) => p.id === billing.plan)
+                            ? `Switch to ${plan.name}`
+                            : `Upgrade to ${plan.name}`}
                   </button>
-                  {paid && !isCurrent && <p className="mt-2 font-sub text-[12.5px] text-ink-3">Cancel your current plan to switch.</p>}
+                  {paid && !isCurrent && billing.scheduled_plan !== plan.id && (
+                    <p className="mt-2 font-sub text-[12.5px] text-ink-3">
+                      {PLANS.findIndex((p) => p.id === plan.id) > PLANS.findIndex((p) => p.id === billing.plan) ? "Starts now; extra credits added at once." : "Takes effect when this period ends."}
+                    </p>
+                  )}
                 </li>
               );
             })}
           </ul>
-          <p className="mt-4 font-sub text-[12.5px] text-ink-3">Payments are processed securely by Razorpay. Plans renew monthly; cancel anytime and keep access until the period ends.</p>
+          <p className="mt-4 font-sub text-[12.5px] text-ink-3">
+            Payments are processed securely by Razorpay. Plans renew monthly. No refunds; cancel anytime and keep access until the period ends.
+          </p>
+        </section>
+
+        {/* payment history */}
+        <section aria-labelledby="payments-heading" className="rounded-xl border border-line p-6">
+          <h2 id="payments-heading" className="text-[18px] font-medium tracking-[-0.01em]">
+            Payment history
+          </h2>
+          {history === null ? (
+            <div className="mt-4 h-16 animate-pulse rounded-lg bg-white/[0.03]" />
+          ) : history.length === 0 ? (
+            <p className="mt-2 font-sub text-[13.5px] text-ink-3">No payments yet.</p>
+          ) : (
+            <table className="mt-4 w-full font-sub text-[13.5px]">
+              <caption className="sr-only">Your payments</caption>
+              <thead>
+                <tr className="text-left text-[12px] text-ink-3">
+                  <th scope="col" className="pb-2 font-normal">Date</th>
+                  <th scope="col" className="pb-2 font-normal">Description</th>
+                  <th scope="col" className="pb-2 font-normal">Status</th>
+                  <th scope="col" className="pb-2 text-right font-normal">Amount</th>
+                </tr>
+              </thead>
+              <tbody>
+                {history.map((p) => (
+                  <tr key={p.id} className="border-t border-line">
+                    <td className="py-2.5 pr-3 text-ink-3">{p.paid_at ? dateFmt.format(new Date(p.paid_at)) : "—"}</td>
+                    <td className="py-2.5 pr-3">{p.description ?? (p.kind === "pack" ? "Credit pack" : "Subscription")}</td>
+                    <td className={`py-2.5 pr-3 capitalize ${p.status === "captured" ? "text-good" : p.status === "failed" ? "text-bad" : "text-ink-3"}`}>
+                      {p.status === "captured" ? "Paid" : p.status}
+                    </td>
+                    <td className="py-2.5 text-right tabular-nums">{formatPrice(p.amount / 100, p.currency)}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          )}
         </section>
       </div>
     </>

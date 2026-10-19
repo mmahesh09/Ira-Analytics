@@ -1,24 +1,28 @@
-"""Creates the four monthly Razorpay plans (Pro/Business x INR/USD) and prints the RAZORPAY_PLANS line for .env.
+"""Creates the monthly Razorpay plans (Pro/Business/Scale x INR/USD) and prints the RAZORPAY_PLANS line for .env.
 
 Run from backend/ with the keys for the mode you want (test first, live at launch):
-    .venv\\Scripts\\python -m scripts.create_razorpay_plans
-Safe to re-run: plans that already exist with the same name are reused, not duplicated.
+    .venv\\Scripts\\python -m scripts.create_razorpay_plans          (test keys)
+    .venv\\Scripts\\python -m scripts.create_razorpay_plans --live   (live keys; refuses without the flag)
+Safe to re-run: plans that already exist with the same name and amount are reused, not duplicated.
 """
 
 import asyncio
+import sys
 
 from app import payments
 from app.config import settings
 from app.plans import PRICES
 
-NAMES = {"pro": "Rankwise Pro", "business": "Rankwise Business"}
+NAMES = {"pro": "Rankwise Pro", "business": "Rankwise Business", "scale": "Rankwise Scale"}
 
 
 async def main() -> None:
     if not payments.configured():
         raise SystemExit("Set RAZORPAY_KEY_ID and RAZORPAY_KEY_SECRET in backend/.env first.")
-    mode = "LIVE" if settings.razorpay_key_id.startswith("rzp_live_") else "TEST"
-    print(f"Razorpay mode: {mode}")
+    live = settings.razorpay_key_id.startswith("rzp_live_")
+    if live and "--live" not in sys.argv:
+        raise SystemExit("These are LIVE keys. Re-run with --live if you really mean to create live plans.")
+    print(f"Razorpay mode: {'LIVE' if live else 'TEST'}")
 
     existing = {(p["item"]["name"], p["item"]["currency"].lower(), p["item"]["amount"]): p["id"] for p in await payments.list_plans() if p.get("period") == "monthly"}
     ids: dict[str, str] = {}

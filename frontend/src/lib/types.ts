@@ -147,6 +147,8 @@ export interface Billing {
   currency: "inr" | "usd" | null;
   current_end: string | null;
   cancel_at_cycle_end: boolean;
+  /** a downgrade waiting for the end of the current period */
+  scheduled_plan: "pro" | "business" | "scale" | null;
   entitlements: {
     sites: number;
     monthly_credits: number;
@@ -163,6 +165,17 @@ export interface Billing {
   checks_today: number;
   /** recent full audits and what they cost: held = running, captured = charged, released = refunded */
   usage: { site: string | null; kind: "audit" | "deep_audit"; cost: number; status: "held" | "captured" | "released"; created_at: string }[];
+}
+
+/** GET /api/billing/payments; amount is in the smallest unit (paise / cents) */
+export interface PaymentRow {
+  id: string;
+  kind: "subscription" | "pack";
+  description: string | null;
+  amount: number;
+  currency: "inr" | "usd";
+  status: "captured" | "failed" | "refunded" | string;
+  paid_at: string | null;
 }
 
 export interface Crawler {

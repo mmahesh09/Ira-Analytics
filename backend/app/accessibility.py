@@ -57,7 +57,7 @@ async def analyze_accessibility(url: str) -> ModuleResult:
         return ModuleResult(key="accessibility", available=False, summary="Accessibility checks need a local Chrome or Edge.")
     try:
         async with _browser_slot, async_playwright() as pw:
-            browser = await pw.chromium.launch(executable_path=browser_path, headless=True, args=["--no-first-run", "--disable-extensions"])
+            browser = await pw.chromium.launch(executable_path=browser_path, headless=True, args=["--no-first-run", "--disable-extensions", *(["--no-sandbox", "--disable-dev-shm-usage"] if settings.chrome_no_sandbox else [])])
             try:
                 page = await browser.new_page(viewport=VIEWPORT, user_agent=settings.user_agent + " (accessibility check)")
                 await page.goto(url, wait_until="load", timeout=30_000)

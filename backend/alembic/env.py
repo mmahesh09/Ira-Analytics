@@ -23,7 +23,8 @@ if config.config_file_name is not None:
 from app.config import settings  # noqa: E402
 from app.schema import BETTER_AUTH_TABLES, Base  # noqa: E402
 
-config.set_main_option("sqlalchemy.url", settings.database_url)
+# "%" (URL-encoded password characters) must be doubled for alembic's config parser
+config.set_main_option("sqlalchemy.url", settings.database_url.replace("%", "%%"))
 target_metadata = Base.metadata
 
 

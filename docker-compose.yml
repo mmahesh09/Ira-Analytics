@@ -1,0 +1,69 @@
+# Rankwise backend stack: API + worker + PostgreSQL. Open-source and host-agnostic:
+# deploy it with Coolify (Oracle Cloud Free VM), or `docker compose up -d` on any VPS.
+# Secrets come from the environment (Coolify's Environment Variables, or a .env file next to this one;
+# never commit that file).
+#
+# Database, two ways:
+#   - bundled:  docker compose --profile bundled-db up -d   (needs POSTGRES_PASSWORD; good for local and simple VPS)
+#   - external: set DATABASE_URL (e.g. a Coolify PostgreSQL resource made public with SSL, which Vercel can reach)
+
+x-backend: &backend
+  build:
+    context: ./backend
+  restart: unless-stopped
+  depends_on:
+    db:
+      condition: service_healthy
+      required: false # absent when DATABASE_URL points at an external database
+  environment: &backend-env
+    DATABASE_URL: ${DATABASE_URL:-postgresql+asyncpg://rankwise:${POSTGRES_PASSWORD:-}@db:5432/rankwise}
+    CORS_ORIGINS: ${CORS_ORIGINS:-http://localhost:3000}
+    PUBLIC_API_URL: ${PUBLIC_API_URL:-http://localhost:8000}
+    OPENROUTER_API_KEY: ${OPENROUTER_API_KEY:-}
+    PAGESPEED_API_KEY: ${PAGESPEED_API_KEY:-}
+    DATAFORSEO_LOGIN: ${DATAFORSEO_LOGIN:-}
+    DATAFORSEO_PASSWORD: ${DATAFORSEO_PASSWORD:-}
+    BROWSER_CHECKS: "true"
+    LOCAL_LIGHTHOUSE: "true"
+
+services:
+  api:
+    <<: *backend
+    environment:
+      <<: *backend-env
+      ROLE: api
+    ports:
+      - "${API_PORT:-8000}:8000"
+    volumes:
+      - shots:/app/data/shots
+
+  worker:
+    <<: *backend
+    environment:
+      <<: *backend-env
+      ROLE: worker
+      RUN_MIGRATIONS: "false" # the api container migrates; two at once would race
+    volumes:
+      - shots:/app/data/shots
+
+  db:
+    image: postgres:18
+    profiles: ["bundled-db"]
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: rankwise
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-} # empty = Postgres refuses to start, so a password must be set
+      POSTGRES_DB: rankwise
+    volumes:
+      - pgdata:/var/lib/postgresql
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U rankwise -d rankwise"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+    # not published: only api and worker reach it. If the Vercel frontend should use it too, prefer an
+    # external database with SSL (see DEPLOY.md) over publishing this port.
+
+volumes:
+  pgdata:
+  shots:

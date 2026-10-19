@@ -1,0 +1,12 @@
+// Cloudflare Workers deploy of the Next.js frontend via OpenNext (npm run cf:deploy).
+// Vercel stays the other target; both build from the same code.
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "rankwise",
+  "main": ".open-next/worker.js",
+  "compatibility_date": "2026-10-01",
+  "compatibility_flags": ["nodejs_compat", "global_fetch_strictly_public"],
+  "assets": { "directory": ".open-next/assets", "binding": "ASSETS" },
+  "services": [{ "binding": "WORKER_SELF_REFERENCE", "service": "rankwise" }],
+  "observability": { "enabled": true }
+}

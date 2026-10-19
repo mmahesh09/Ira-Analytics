@@ -7,6 +7,9 @@ const nextConfig: NextConfig = {
     const backend = (process.env.BACKEND_URL ?? "http://localhost:8000").replace(/\/$/, "");
     return { beforeFiles: [], afterFiles: [], fallback: [{ source: "/api/:path*", destination: `${backend}/api/:path*` }] };
   },
+  // pg loads its Workers TCP socket (pg-cloudflare) through a "workerd" export condition that file
+  // tracing doesn't follow; ship the whole package so the Cloudflare build can bundle it
+  outputFileTracingIncludes: { "/*": ["./node_modules/pg-cloudflare/**/*"] },
   cacheComponents: true,
   partialPrefetching: true,
   turbopack: {

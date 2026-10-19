@@ -17,6 +17,17 @@ export const auth = betterAuth({
   database: pool,
   emailAndPassword: { enabled: true, minPasswordLength: 8 },
   session: { expiresIn: 60 * 60 * 24 * 30, updateAge: 60 * 60 * 24 },
-  rateLimit: { enabled: true },
+  // counters live in Postgres so every serverless instance shares them (in-memory limits reset per instance);
+  // the `rateLimit` table is created by `npx auth migrate`. Stricter windows on the endpoints worth guessing at.
+  rateLimit: {
+    enabled: true,
+    storage: "database",
+    window: 60,
+    max: 100,
+    customRules: {
+      "/sign-in/email": { window: 60, max: 5 },
+      "/sign-up/email": { window: 3600, max: 5 },
+    },
+  },
   plugins: [nextCookies()], // must stay last
 });

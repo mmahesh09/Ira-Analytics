@@ -19,7 +19,7 @@ def _now() -> Mapped[datetime]:
 
 # Better Auth owns these two tables (created by `npx @better-auth/cli migrate` in frontend/).
 # Mapped read-only here so FastAPI can resolve the session cookie; alembic/env.py skips them.
-BETTER_AUTH_TABLES = {"user", "session", "account", "verification"}
+BETTER_AUTH_TABLES = {"user", "session", "account", "verification", "rateLimit"}
 
 
 class User(Base):

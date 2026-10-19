@@ -29,7 +29,8 @@ def async_db_url(raw: str) -> str:
 
 @dataclass(frozen=True)
 class Settings:
-    cors_origins: list[str] = field(default_factory=lambda: _list("CORS_ORIGINS", "http://localhost:3000"))
+    # browsers call the API directly only for the audit stream; the CORS_ORIGINS variable replaces this list
+    cors_origins: list[str] = field(default_factory=lambda: _list("CORS_ORIGINS", "http://localhost:3000,https://rankwise-xi.vercel.app"))
     pagespeed_api_key: str = os.getenv("PAGESPEED_API_KEY", "")
     openrouter_api_key: str = os.getenv("OPENROUTER_API_KEY", "")
     geo_models: list[str] = field(default_factory=lambda: _list("GEO_MODELS", "perplexity/sonar,openai/gpt-4o-mini"))

@@ -21,7 +21,9 @@ case "${ROLE:-api}" in
     exec python -m app.worker
     ;;
   api)
-    exec uvicorn app.main:app --host 0.0.0.0 --port "${PORT:-8000}" --proxy-headers --forwarded-allow-ips="*"
+    # X-Forwarded-For is client-controlled: uvicorn trusts it only from FORWARDED_ALLOW_IPS (localhost by default).
+    # The app reads the header itself for preview limits (TRUSTED_PROXY_HOPS), so this stays safe behind any proxy.
+    exec uvicorn app.main:app --host 0.0.0.0 --port "${PORT:-8000}" --proxy-headers --forwarded-allow-ips="${FORWARDED_ALLOW_IPS:-127.0.0.1}"
     ;;
   *)
     echo "Unknown ROLE '$ROLE' (use api or worker)" >&2

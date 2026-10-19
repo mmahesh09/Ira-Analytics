@@ -1,0 +1,4 @@
+# For hosts that build Python from the repository root (e.g. a Render "Python" web service).
+# The backend's own list is the single source of truth; pip resolves this path relative to this file.
+# Start command on such hosts: cd backend && sh docker-entrypoint.sh   (runs migrations, then the API)
+-r backend/requirements.txt

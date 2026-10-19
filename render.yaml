@@ -9,7 +9,7 @@ services:
     dockerfilePath: ./backend/Dockerfile
     dockerContext: ./backend
     plan: free # 512 MB: no room for Chromium; switch to standard (2 GB) and set the two browser flags to true to enable it
-    region: singapore
+    region: ohio # same AWS region as the Neon database (us-east-2)
     healthCheckPath: /api/health
     autoDeployTrigger: commit
     envVars:

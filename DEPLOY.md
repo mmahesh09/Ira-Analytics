@@ -74,8 +74,9 @@ move the service to **Standard (2 GB)** and set `WITH_BROWSER`, `BROWSER_CHECKS`
 Free services sleep after 15 minutes idle; step 6 keeps it awake so monitoring keeps running.
 
 ### 1. Database: Neon (free, no expiry)
-<https://neon.tech> → sign in with GitHub → **New project** `rankwise`, region **AWS Asia Pacific (Singapore)**
-(same region as the Render service). Copy the **connection string**: `postgresql://…neon.tech/neondb?sslmode=require`.
+<https://neon.tech> → sign in with GitHub → **New project** `rankwise`, region **AWS US East 2 (Ohio)**
+(same region as the Render service, `region: ohio` in `render.yaml`). Copy the **direct** connection string
+(host without `-pooler`): `postgresql://…neon.tech/neondb?sslmode=require`.
 
 ### 2. Keys
 - **PageSpeed Insights** (free): <https://console.cloud.google.com> → APIs & Services → enable *PageSpeed Insights API* → Credentials → **API key**.

@@ -1,11 +1,12 @@
 # Deploying Rankwise
 
-Three free options. Both use the same Docker image (`backend/Dockerfile`), so moving later is painless.
+Three free options. All use the same Docker image (`backend/Dockerfile`), so moving later is painless.
 
-- **Render (free) + Neon**: the quickest. Below.
-- **Oracle Cloud Free VM + Coolify**: fully open source, more power (Chromium checks on). Further down.
+- **Hugging Face Spaces + Neon**: free, no credit card, every feature on. Recommended.
+- **Render (free) + Neon**: no card, but 512 MB, so browser checks are off.
+- **Oracle Cloud Free VM + Coolify**: fully open source and powerful, but Oracle asks for a card.
 
-Never paste passwords or keys into chat or commit them: they go only into Render's, Neon's and Vercel's settings screens.
+Never paste passwords or keys into chat or commit them: they go only into the host's, Neon's and Vercel's settings screens.
 
 ---
 

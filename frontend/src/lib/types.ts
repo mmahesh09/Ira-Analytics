@@ -61,7 +61,10 @@ export interface Site {
   domain: string;
   name: string;
   timezone: string;
+  /** how often scheduled light checks run (never more often than the plan allows) */
   audit_cadence: "off" | "daily" | "weekly";
+  /** one full audit a month on the schedule, paid with a credit */
+  auto_full_audit: boolean;
   tracking_key: string;
   snippet: string;
   created_at: string;
@@ -72,6 +75,7 @@ export interface AuditPoint {
   id: number;
   created_at: string;
   trigger: "scheduled" | "manual" | "deploy" | string;
+  kind: "full" | "deep" | "check";
   overall: number;
   seo: number | null;
   aeo: number | null;
@@ -138,14 +142,27 @@ export interface AlertRow {
 
 /** GET /api/billing (backend/app/routers/billing.py BillingOut) */
 export interface Billing {
-  plan: "free" | "pro" | "business";
+  plan: "free" | "pro" | "business" | "scale";
   status: string | null;
   currency: "inr" | "usd" | null;
   current_end: string | null;
   cancel_at_cycle_end: boolean;
-  entitlements: { sites: number; pageviews: number; audit_cadence: string; ai_prompts: number; competitors: number; retention_months: number; google_integrations: boolean };
+  entitlements: {
+    sites: number;
+    monthly_credits: number;
+    crawl_pages: number;
+    deep_audit: boolean;
+    check_cadence: string;
+    daily_checks: number;
+    credit_packs: boolean;
+    ai_rewrites: number;
+  };
   payments_enabled: boolean;
   usd_enabled: boolean;
+  credits: { total: number; monthly: number; pack: number; adjustment: number; monthly_expires_at: string | null };
+  checks_today: number;
+  /** recent full audits and what they cost: held = running, captured = charged, released = refunded */
+  usage: { site: string | null; kind: "audit" | "deep_audit"; cost: number; status: "held" | "captured" | "released"; created_at: string }[];
 }
 
 export interface Crawler {

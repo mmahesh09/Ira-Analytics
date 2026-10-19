@@ -10,7 +10,7 @@ export function PricingCards() {
 
   return (
     <div>
-      <ul className="grid items-stretch gap-4 lg:grid-cols-3">
+      <ul className="grid items-stretch gap-4 md:grid-cols-2 xl:grid-cols-4">
         {PLANS.map((plan) => (
           <li
             key={plan.id}
@@ -33,6 +33,20 @@ export function PricingCards() {
               <span className="font-sub text-[14px] text-ink-3">/ month</span>
             </p>
 
+            <dl className="mt-6 grid grid-cols-2 gap-px overflow-hidden rounded-xl border border-line bg-line">
+              <div className="bg-surface px-3.5 py-3">
+                <dt className="eyebrow text-[10.5px]">Audit credits</dt>
+                <dd className="mt-1 font-display text-[22px] font-semibold tabular-nums">
+                  {plan.credits}
+                  <span className="ml-1 font-sub text-[12px] font-normal text-ink-3">/ mo</span>
+                </dd>
+              </div>
+              <div className="bg-surface px-3.5 py-3">
+                <dt className="eyebrow text-[10.5px]">Websites</dt>
+                <dd className="mt-1 font-display text-[22px] font-semibold tabular-nums">{plan.sites}</dd>
+              </div>
+            </dl>
+
             <Link
               href={`/signup?plan=${plan.id}`}
               className={`mt-7 inline-flex h-11 items-center justify-center gap-2 rounded-full font-sub text-[14px] font-medium transition-colors duration-150 ${
@@ -45,18 +59,12 @@ export function PricingCards() {
             <div className="mt-7 flex-1 border-t border-line pt-6">
               {plan.featuresIntro && <p className="mb-3 font-sub text-[13px] text-ink-2">{plan.featuresIntro}</p>}
               <ul className="space-y-2.5">
-                {plan.features.map((f) => {
-                  const soon = plan.soon?.includes(f);
-                  return (
-                    <li key={f} className={`flex gap-2.5 text-[14.5px] leading-snug ${soon ? "text-ink-3" : "text-ink-2"}`}>
-                      <Check aria-hidden="true" className={`mt-0.5 size-4 shrink-0 ${soon ? "text-ink-3" : plan.highlight ? "text-cobalt" : "text-good"}`} />
-                      <span>
-                        {f}
-                        {soon && <span className="ml-2 rounded-full border border-line-strong px-1.5 py-px align-[1px] font-sub text-[11px] text-ink-3">Soon</span>}
-                      </span>
-                    </li>
-                  );
-                })}
+                {plan.features.map((f) => (
+                  <li key={f} className="flex gap-2.5 text-[14.5px] leading-snug text-ink-2">
+                    <Check aria-hidden="true" className={`mt-0.5 size-4 shrink-0 ${plan.highlight ? "text-cobalt" : "text-good"}`} />
+                    <span>{f}</span>
+                  </li>
+                ))}
               </ul>
               {plan.notIncluded && (
                 <ul className="mt-4 space-y-2 border-t border-dashed border-line pt-4" aria-label={`Not included in ${plan.name}`}>
@@ -74,8 +82,9 @@ export function PricingCards() {
           </li>
         ))}
       </ul>
-      <p className="mt-6 font-sub text-[13px] text-ink-3">
-        Billed monthly through Razorpay. Cancel anytime and keep access until the end of the period. &ldquo;Soon&rdquo; items arrive in your plan at no extra cost.
+      <p className="mt-6 max-w-[80ch] font-sub text-[13px] leading-relaxed text-ink-3">
+        A full audit uses 1 credit; light checks and opening saved reports are free. Monthly credits don&rsquo;t roll over. Paid plans are billed monthly
+        through Razorpay, plus GST where applicable. Cancel anytime and keep your plan until the end of the period.
       </p>
     </div>
   );

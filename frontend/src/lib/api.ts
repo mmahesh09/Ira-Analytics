@@ -43,10 +43,10 @@ export class ApiError extends Error {
 }
 
 /** Same-origin call to the platform API (proxied by next.config rewrites). Throws ApiError with the server's message. */
-export async function apiFetch<T>(path: string, init: { method?: string; body?: unknown } = {}): Promise<T> {
+export async function apiFetch<T>(path: string, init: { method?: string; body?: unknown; headers?: Record<string, string> } = {}): Promise<T> {
   const res = await fetch(`/api${path}`, {
     method: init.method ?? (init.body === undefined ? "GET" : "POST"),
-    headers: init.body === undefined ? undefined : { "Content-Type": "application/json" },
+    headers: { ...(init.body === undefined ? {} : { "Content-Type": "application/json" }), ...init.headers },
     body: init.body === undefined ? undefined : JSON.stringify(init.body),
     credentials: "same-origin",
   });

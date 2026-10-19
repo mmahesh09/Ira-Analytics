@@ -43,7 +43,7 @@ export const FEATURES: Feature[] = [
   // Detect
   { slug: "health-score", name: "Website Health Score", pitch: "One transparent score, built from findings you can check.", chapter: "detect", icon: Gauge, status: "live" },
   { slug: "accessibility", name: "Accessibility Checker", pitch: "Common WCAG problems found, with the fix for each.", chapter: "detect", icon: Accessibility, status: "live" },
-  { slug: "broken-links", name: "Broken Link Monitor", pitch: "Every internal and external link checked on a schedule.", chapter: "detect", icon: Unlink, status: "live" },
+  { slug: "broken-links", name: "Broken Link Monitor", pitch: "Internal and external links checked with every full audit.", chapter: "detect", icon: Unlink, status: "live" },
   { slug: "visual-doctor", name: "Visual Website Doctor", pitch: "Problems circled right on a screenshot of your page.", chapter: "detect", icon: Stethoscope, status: "live" },
 
   // Prioritise & fix
@@ -53,9 +53,9 @@ export const FEATURES: Feature[] = [
   { slug: "ai-content", name: "AI Content Optimization", pitch: "Better titles, descriptions and headings, written for you.", chapter: "fix", icon: Sparkles, status: "live" },
 
   // Verify & monitor
-  { slug: "monitoring", name: "Continuous Website Monitoring", pitch: "Audits on a schedule, so problems find you first.", chapter: "monitor", icon: Activity, status: "live" },
-  { slug: "change-detective", name: "Website Change Detective", pitch: "Audits after every deploy, with what changed.", chapter: "monitor", icon: ScanSearch, status: "live" },
-  { slug: "regression-alerts", name: "Performance Regression Alerts", pitch: "Told the day your pages get slower.", chapter: "monitor", icon: BellRing, status: "live" },
+  { slug: "monitoring", name: "Continuous Website Monitoring", pitch: "Free light checks on a schedule, so problems find you first.", chapter: "monitor", icon: Activity, status: "live" },
+  { slug: "change-detective", name: "Website Change Detective", pitch: "A check after each deploy, with what changed.", chapter: "monitor", icon: ScanSearch, status: "live" },
+  { slug: "regression-alerts", name: "Performance Regression Alerts", pitch: "Told when a full audit finds slower pages.", chapter: "monitor", icon: BellRing, status: "live" },
   { slug: "health-history", name: "Website Health History", pitch: "Every score, new issue and fix on one timeline.", chapter: "monitor", icon: History, status: "live" },
   { slug: "verification", name: "Before-and-After Verification", pitch: "Proof a fix worked, measured, not assumed.", chapter: "monitor", icon: BookOpenCheck, status: "live" },
 

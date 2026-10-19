@@ -3,7 +3,7 @@
 import { useEffect, useState, useSyncExternalStore } from "react";
 import { Check, CircleAlert, CircleCheck, LoaderCircle } from "lucide-react";
 import { apiFetch } from "@/lib/api";
-import { PLANS, formatPrice, isPlanId, type Currency, type PlanId } from "@/lib/plans";
+import { AUDIT_COST, DEEP_AUDIT_COST, PACKS, PLANS, formatPrice, isPlanId, type Currency, type PlanId } from "@/lib/plans";
 import type { Billing } from "@/lib/types";
 import { CurrencyToggle, useCurrency } from "@/components/pricing/currency";
 import { PageHeader, useWorkspace } from "./workspace";
@@ -171,18 +171,20 @@ export function BillingPage() {
           </div>
           <dl className="grid grid-cols-2 gap-x-10 gap-y-3 font-sub text-[13.5px] sm:grid-cols-3">
             <div>
-              <dt className="text-ink-3">Sites</dt>
+              <dt className="text-ink-3">Websites</dt>
               <dd className="mt-0.5 tabular-nums">
                 {siteCount} / {billing.entitlements.sites}
               </dd>
             </div>
             <div>
-              <dt className="text-ink-3">Pageviews / mo</dt>
-              <dd className="mt-0.5 tabular-nums">{billing.entitlements.pageviews.toLocaleString()}</dd>
+              <dt className="text-ink-3">Audit credits left</dt>
+              <dd className="mt-0.5 tabular-nums">{billing.credits.total}</dd>
             </div>
             <div>
-              <dt className="text-ink-3">Audits</dt>
-              <dd className="mt-0.5 capitalize">{billing.entitlements.audit_cadence}</dd>
+              <dt className="text-ink-3">Light checks today</dt>
+              <dd className="mt-0.5 tabular-nums">
+                {billing.checks_today} / {billing.entitlements.daily_checks}
+              </dd>
             </div>
           </dl>
           {paid && !billing.cancel_at_cycle_end && billing.status === "active" && (
@@ -197,6 +199,104 @@ export function BillingPage() {
           )}
         </section>
 
+        {/* credits */}
+        <section aria-labelledby="credits-heading" className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_minmax(0,1.4fr)]">
+          <div className="rounded-xl border border-line p-6">
+            <h2 id="credits-heading" className="text-[18px] font-medium tracking-[-0.01em]">
+              Audit credits
+            </h2>
+            <p className="mt-1 font-sub text-[13.5px] text-ink-3">
+              {AUDIT_COST} credit per full audit{billing.entitlements.deep_audit ? `, ${DEEP_AUDIT_COST} per deep audit` : ""}. Light checks and opening reports are free.
+            </p>
+            <dl className="mt-5 space-y-2.5 font-sub text-[14px]">
+              <div className="flex justify-between gap-4">
+                <dt className="text-ink-2">This month&rsquo;s credits</dt>
+                <dd className="tabular-nums">
+                  {billing.credits.monthly} of {billing.entitlements.monthly_credits}
+                </dd>
+              </div>
+              {billing.credits.pack > 0 && (
+                <div className="flex justify-between gap-4">
+                  <dt className="text-ink-2">Credit packs</dt>
+                  <dd className="tabular-nums">{billing.credits.pack}</dd>
+                </div>
+              )}
+              {billing.credits.adjustment > 0 && (
+                <div className="flex justify-between gap-4">
+                  <dt className="text-ink-2">Refunded credits</dt>
+                  <dd className="tabular-nums">{billing.credits.adjustment}</dd>
+                </div>
+              )}
+              <div className="flex justify-between gap-4 border-t border-line pt-2.5 font-medium">
+                <dt>Available now</dt>
+                <dd className="tabular-nums">{billing.credits.total}</dd>
+              </div>
+            </dl>
+            {billing.credits.monthly_expires_at && (
+              <p className="mt-3 font-sub text-[12.5px] text-ink-3">
+                Monthly credits reset on {dateFmt.format(new Date(billing.credits.monthly_expires_at))} and don&rsquo;t roll over.
+              </p>
+            )}
+            {billing.entitlements.credit_packs && (
+              <div className="mt-5 border-t border-line pt-5">
+                <p className="font-sub text-[13.5px] text-ink-2">Need more audits this month?</p>
+                <ul className="mt-3 grid grid-cols-2 gap-2">
+                  {PACKS.map((pack) => (
+                    <li key={pack.id}>
+                      <button
+                        type="button"
+                        disabled
+                        className="btn-ghost inline-flex w-full cursor-not-allowed flex-col items-start rounded-lg px-3.5 py-2.5 text-left disabled:text-ink-3"
+                      >
+                        <span className="font-sub text-[14px] font-medium">{pack.credits} credits</span>
+                        <span className="font-sub text-[12.5px] tabular-nums">{formatPrice(pack.price[currency], currency)}</span>
+                      </button>
+                    </li>
+                  ))}
+                </ul>
+                <p className="mt-2 font-sub text-[12.5px] text-ink-3">Credit packs go on sale when payments are switched on. They last 12 months.</p>
+              </div>
+            )}
+          </div>
+
+          <div className="rounded-xl border border-line p-6">
+            <h2 className="text-[18px] font-medium tracking-[-0.01em]">Recent usage</h2>
+            {billing.usage.length === 0 ? (
+              <p className="mt-3 font-sub text-[13.5px] text-ink-3">No full audits yet. Run one from any website&rsquo;s overview.</p>
+            ) : (
+              <table className="mt-4 w-full font-sub text-[13.5px]">
+                <caption className="sr-only">Credits used by recent audits</caption>
+                <thead>
+                  <tr className="text-left text-[12px] text-ink-3">
+                    <th scope="col" className="pb-2 font-normal">Website</th>
+                    <th scope="col" className="pb-2 font-normal">Audit</th>
+                    <th scope="col" className="pb-2 font-normal">When</th>
+                    <th scope="col" className="pb-2 text-right font-normal">Credits</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {billing.usage.map((row, i) => (
+                    <tr key={i} className="border-t border-line">
+                      <td className="max-w-[12rem] truncate py-2.5 pr-3">{row.site ?? "Deleted website"}</td>
+                      <td className="py-2.5 pr-3 text-ink-2">{row.kind === "deep_audit" ? "Deep" : "Full"}</td>
+                      <td className="py-2.5 pr-3 text-ink-3">{dateFmt.format(new Date(row.created_at))}</td>
+                      <td className="py-2.5 text-right tabular-nums">
+                        {row.status === "released" ? (
+                          <span className="text-ink-3">Refunded</span>
+                        ) : row.status === "held" ? (
+                          <span className="text-ink-3">Running · {row.cost}</span>
+                        ) : (
+                          <span>&minus;{row.cost}</span>
+                        )}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            )}
+          </div>
+        </section>
+
         {/* plans */}
         <section aria-labelledby="plans-heading">
           <div className="flex flex-wrap items-center justify-between gap-4">
@@ -208,7 +308,7 @@ export function BillingPage() {
           {!billing.payments_enabled && (
             <p className="mt-3 font-sub text-[13.5px] text-ink-3">Payments aren&apos;t switched on yet. You can keep using the Free plan.</p>
           )}
-          <ul className="mt-5 grid gap-4 md:grid-cols-2">
+          <ul className="mt-5 grid gap-4 md:grid-cols-3">
             {PLANS.filter((p) => p.id !== "free").map((plan) => {
               const isCurrent = billing.plan === plan.id;
               const highlighted = isPlanId(wanted) ? wanted === plan.id : plan.highlight;
@@ -221,6 +321,10 @@ export function BillingPage() {
                     </p>
                   </div>
                   <p className="mt-1 text-[14px] text-ink-3">{plan.tagline}</p>
+                  <p className="mt-4 font-sub text-[13.5px] text-ink-2">
+                    <span className="font-medium text-ink tabular-nums">{plan.credits}</span> audit credits / mo ·{" "}
+                    <span className="font-medium text-ink tabular-nums">{plan.sites}</span> websites
+                  </p>
                   <ul className="mt-5 flex-1 space-y-2">
                     {plan.features.slice(0, 5).map((f) => (
                       <li key={f} className="flex gap-2.5 text-[14px] text-ink-2">

@@ -1,24 +1,30 @@
 /**
- * Pricing plans: the single source of truth for the pricing section, /pricing page and (later) backend limits.
- * Display only for now; no checkout. INR uses regional round prices, not a live FX conversion.
+ * Pricing plans for the pricing page, the landing page and Billing. Display copy only: the server-side source
+ * of truth (limits, credits, enforcement) is backend/app/plans.py, and backend/tests/test_billing.py pins the
+ * same numbers. Every line here is something that works today; nothing unbuilt is listed.
+ * INR uses regional round prices, not a live FX conversion.
  */
 
 export type Currency = "usd" | "inr";
-export type PlanId = "free" | "pro" | "business";
+export type PlanId = "free" | "pro" | "business" | "scale";
+
+/** Credits per full audit; light checks cost nothing. Mirrors CREDIT_COST in backend/app/plans.py. */
+export const AUDIT_COST = 1;
+export const DEEP_AUDIT_COST = 3;
+export const DEEP_AUDIT_PAGES = 500;
 
 export interface Plan {
   id: PlanId;
   name: string;
   tagline: string;
   price: Record<Currency, number>;
+  /** full-audit credits granted each month (no rollover) */
+  credits: number;
+  sites: number;
   cta: string;
   highlight?: boolean;
-  /** short list on the card; Business is "Everything in Pro, plus" */
-  features: string[];
   featuresIntro?: string;
-  /** features on the card that aren't built yet: shown with a "Soon" tag, never sold as available */
-  soon?: string[];
-  /** the main limits, so the difference between plans is explicit */
+  features: string[];
   notIncluded?: string[];
 }
 
@@ -26,68 +32,90 @@ export const PLANS: Plan[] = [
   {
     id: "free",
     name: "Free",
-    tagline: "For trying Rankwise on one site.",
+    tagline: "Try Rankwise on one website.",
     price: { usd: 0, inr: 0 },
+    credits: 1,
+    sites: 1,
     cta: "Start free",
-    features: ["1 site", "10k pageviews a month", "Monthly SEO, AEO and GEO audits", "3 AI-visibility prompts", "6 months of data"],
-    notIncluded: ["Weekly audits and score history", "Competitor tracking"],
+    features: ["1 full audit every month", "Weekly light checks", "Broken links on up to 10 pages per audit", "Fix suggestions and issue history"],
+    notIncluded: ["Credit packs", "Deep audits"],
   },
   {
     id: "pro",
     name: "Pro",
-    tagline: "For freelancers and growing sites.",
+    tagline: "For freelancers and small business sites.",
     price: { usd: 19, inr: 1499 },
+    credits: 3,
+    sites: 3,
     cta: "Start with Pro",
     highlight: true,
-    features: ["5 sites", "100k pageviews a month", "Weekly audits with score history", "25 AI-visibility prompts", "3 competitors per site", "Google Search Console and GA4", "Email alerts", "2 years of data"],
-    soon: ["3 competitors per site", "Google Search Console and GA4", "Email alerts"],
-    notIncluded: ["Daily audits"],
+    features: ["3 full audits every month", "Daily light checks, up to 10 a day", "Broken links on up to 50 pages per audit", "Buy extra credits when you need them"],
+    notIncluded: ["Deep audits"],
   },
   {
     id: "business",
     name: "Business",
-    tagline: "For agencies and teams.",
+    tagline: "For agencies looking after client sites.",
     price: { usd: 79, inr: 5999 },
+    credits: 7,
+    sites: 10,
     cta: "Start with Business",
     featuresIntro: "Everything in Pro, plus",
-    features: ["25 sites", "1M pageviews a month", "Daily audits", "200 AI-visibility prompts", "10 competitors per site", "Priority alerts", "5 years of data"],
-    soon: ["10 competitors per site", "Priority alerts"],
+    features: ["7 full audits every month", `Deep audits: ${DEEP_AUDIT_PAGES} pages for ${DEEP_AUDIT_COST} credits`, "Up to 40 light checks a day", "Broken links on up to 100 pages per audit"],
+  },
+  {
+    id: "scale",
+    name: "Scale",
+    tagline: "For larger portfolios of websites.",
+    price: { usd: 149, inr: 11999 },
+    credits: 11,
+    sites: 25,
+    cta: "Start with Scale",
+    featuresIntro: "Everything in Business, plus",
+    features: ["11 full audits every month", "25 websites", "Up to 100 light checks a day"],
   },
 ];
 
+/** One-time credit packs for paid plans. Mirrors PACKS in backend/app/plans.py. */
+export const PACKS: { id: string; credits: number; price: Record<Currency, number> }[] = [
+  { id: "pack_5", credits: 5, price: { usd: 15, inr: 1199 } },
+  { id: "pack_20", credits: 20, price: { usd: 49, inr: 3999 } },
+];
+
 /** Rows of the full comparison table on /pricing. `true` = included, `false` = not included, string = value. */
-export const COMPARISON: { group: string; rows: { label: string; values: Record<PlanId, string | boolean> }[] }[] = [
+export const COMPARISON: { group: string; note?: string; rows: { label: string; values: Record<PlanId, string | boolean> }[] }[] = [
   {
     group: "Usage",
     rows: [
-      { label: "Sites", values: { free: "1", pro: "5", business: "25" } },
-      { label: "Pageviews per month", values: { free: "10k", pro: "100k", business: "1M" } },
-      { label: "Data retention", values: { free: "6 months", pro: "2 years", business: "5 years" } },
+      { label: "Websites", values: { free: "1", pro: "3", business: "10", scale: "25" } },
+      { label: "Full-audit credits each month", values: { free: "1", pro: "3", business: "7", scale: "11" } },
+      { label: "Extra credit packs", values: { free: false, pro: true, business: true, scale: true } },
     ],
   },
   {
-    group: "Audits",
+    group: "Full audits",
+    note: `${AUDIT_COST} credit each. Opening a saved report never uses credits.`,
     rows: [
-      { label: "SEO, AEO, GEO and Speed audits", values: { free: true, pro: true, business: true } },
-      { label: "Scheduled audits", values: { free: "Monthly", pro: "Weekly", business: "Daily" } },
-      { label: "Score history and trends", values: { free: false, pro: true, business: true } },
+      { label: "SEO, AEO, GEO and Speed scores", values: { free: true, pro: true, business: true, scale: true } },
+      { label: "Pages checked for broken links", values: { free: "10", pro: "50", business: "100", scale: "100" } },
+      { label: `Deep audit (${DEEP_AUDIT_PAGES} pages, ${DEEP_AUDIT_COST} credits)`, values: { free: false, pro: false, business: true, scale: true } },
+      { label: "Fix suggestions with ready-to-paste code", values: { free: true, pro: true, business: true, scale: true } },
     ],
   },
   {
-    group: "AI visibility",
+    group: "Light checks",
+    note: "Fast SEO, AEO and GEO rule checks between full audits. They never use credits.",
     rows: [
-      { label: "Tracked prompts", values: { free: "3", pro: "25", business: "200" } },
-      { label: "Competitors per site", values: { free: false, pro: "3", business: "10" } },
-      { label: "AI share of voice", values: { free: false, pro: true, business: true } },
+      { label: "Scheduled light checks", values: { free: "Weekly", pro: "Daily", business: "Daily", scale: "Daily" } },
+      { label: "Light checks per day, all sites", values: { free: "3", pro: "10", business: "40", scale: "100" } },
+      { label: "“Mark fixed” rechecks", values: { free: true, pro: true, business: true, scale: true } },
+      { label: "Deploy webhook (full audit, or a light check without credits)", values: { free: true, pro: true, business: true, scale: true } },
     ],
   },
   {
-    group: "Traffic and integrations",
+    group: "History",
     rows: [
-      { label: "Cookieless tracking script", values: { free: true, pro: true, business: true } },
-      { label: "Google Search Console", values: { free: false, pro: true, business: true } },
-      { label: "Google Analytics 4", values: { free: false, pro: true, business: true } },
-      { label: "Alerts", values: { free: false, pro: "Email", business: "Email + priority" } },
+      { label: "Score history, issue history and in-app alerts", values: { free: true, pro: true, business: true, scale: true } },
     ],
   },
 ];
@@ -102,5 +130,7 @@ export function formatPrice(amount: number, currency: Currency): string {
 }
 
 export function isPlanId(value: string | null): value is PlanId {
-  return value === "free" || value === "pro" || value === "business";
+  return value === "free" || value === "pro" || value === "business" || value === "scale";
 }
+
+export const planById = (id: PlanId): Plan => PLANS.find((p) => p.id === id) ?? PLANS[0];

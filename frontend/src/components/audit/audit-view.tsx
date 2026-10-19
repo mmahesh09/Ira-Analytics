@@ -21,15 +21,14 @@ import { VisualDoctor } from "./visual-doctor";
 import { ScoreBreakdown } from "./score-breakdown";
 
 type Tab = "overview" | ModuleKey;
-const TABS: Tab[] = ["overview", "seo", "aeo", "geo", "performance", "accessibility", "traffic"];
+// The public audit is a free preview (a light check on the server): SEO, AEO and GEO rules only. Speed,
+// accessibility and the broken-link crawl run in full audits, inside an account.
+const TABS: Tab[] = ["overview", "seo", "aeo", "geo"];
 const STAGES: { key: "fetch" | ModuleKey; label: string }[] = [
   { key: "fetch", label: "fetch page, robots.txt, sitemap, llms.txt" },
-  { key: "seo", label: "seo: on-page checks + internal link crawl" },
+  { key: "seo", label: "seo: on-page checks" },
   { key: "aeo", label: "aeo: answer-engine readiness" },
   { key: "geo", label: "geo: AI crawler access + trust signals" },
-  { key: "performance", label: "speed: Lighthouse on throttled mobile" },
-  { key: "accessibility", label: "accessibility: WCAG checks + screenshot in a real browser" },
-  { key: "traffic", label: "traffic: organic estimates" },
 ];
 const EASE = [0.16, 1, 0.3, 1] as const;
 
@@ -418,15 +417,18 @@ function ReportPanel({ report, host, tab, setTab }: { report: AuditReport; host:
                     <CheckWaffle report={report} onOpen={(k, status) => openModule(k, status)} />
                   </div>
                 </div>
-                <div className="panel rounded-xl p-5">
-                  <p className="font-sub text-[13px] text-ink-3">Est. monthly organic visits</p>
-                  <p className="mt-1 font-display text-[30px] font-semibold tracking-[-0.03em] tabular-nums">{traffic?.available ? compact((traffic.data.estimated_monthly_visits as number) ?? 0) : "—"}</p>
-                  <button type="button" onClick={() => setTab("traffic")} className="mt-2 inline-flex cursor-pointer items-center gap-1 font-sub text-[13.5px] text-ink-2 transition-colors hover:text-ink">
-                    {traffic?.available ? "See keywords" : "Why it's empty"} <ArrowRight aria-hidden="true" className="size-3.5" />
-                  </button>
+                <div className="panel rounded-xl border-cobalt/30 p-5">
+                  <p className="eyebrow text-[10.5px]">Free preview</p>
+                  <p className="mt-2 text-[15px] font-medium leading-snug">This preview checks SEO, AEO and GEO rules on one page.</p>
+                  <p className="mt-1.5 font-sub text-[13.5px] leading-relaxed text-ink-3">
+                    A full audit adds Speed scores, accessibility checks and a broken-link crawl and keeps the history, and free light checks keep watching in between. Free accounts get one full audit every month.
+                  </p>
+                  <Link href="/signup" className="btn-brand mt-4 inline-flex h-9 items-center gap-1.5 rounded-full px-4 font-sub text-[13.5px] font-medium">
+                    Get a free full audit <ArrowRight aria-hidden="true" className="size-3.5" />
+                  </Link>
                 </div>
                 <p className="px-1 text-[12.5px] leading-relaxed text-ink-3">
-                  Overall = SEO 35% · GEO 25% · AEO 20% · Speed 20%. Traffic is reported, not scored. Audited {new Date(report.fetched_at).toLocaleString()}.
+                  Preview score from SEO, AEO and GEO only, so it can differ from a full audit. Checked {new Date(report.fetched_at).toLocaleString()}.
                 </p>
               </aside>
             </div>

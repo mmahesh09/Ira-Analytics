@@ -42,7 +42,7 @@ function AddSiteForm({ onDone }: { onDone?: () => void }) {
   return (
     <form onSubmit={submit} className="panel rounded-xl p-6">
       <h2 className="text-[17px] font-medium tracking-[-0.01em]">Add a site</h2>
-      <p className="mt-1 text-[14px] text-ink-3">You&apos;ll get a one-line tracking snippet next.</p>
+      <p className="mt-1 text-[14px] text-ink-3">Light checks start on their own. Run a full audit whenever you want the complete picture.</p>
       <div className="mt-5 grid gap-3 sm:grid-cols-[1.4fr_1fr_auto]">
         <label className="sr-only" htmlFor="site-domain">
           Domain
@@ -99,7 +99,7 @@ export function SitesHome() {
                       </span>
                       <span className="mt-4 truncate text-[16px] font-medium">{s.name}</span>
                       <span className="truncate font-sub text-[13px] text-ink-3">{s.domain}</span>
-                      <span className="mt-4 font-sub text-[12px] text-ink-3">Audits: {s.audit_cadence === "off" ? "manual" : s.audit_cadence}</span>
+                      <span className="mt-4 font-sub text-[12px] text-ink-3">Light checks: {s.audit_cadence === "off" ? "paused" : s.audit_cadence}</span>
                     </Link>
                   </li>
                 ))}
@@ -109,38 +109,6 @@ export function SitesHome() {
         )}
       </div>
     </>
-  );
-}
-
-function SnippetCard({ site }: { site: Site }) {
-  const [copied, setCopied] = useState(false);
-  return (
-    <section className="panel min-w-0 rounded-xl p-6">
-      <div className="flex flex-wrap items-start justify-between gap-4">
-        <div className="min-w-0">
-          <h2 className="text-[17px] font-medium tracking-[-0.01em]">Install the tracking script</h2>
-          <p className="mt-1 max-w-[60ch] text-[14px] text-ink-3">
-            Paste this into the <code className="font-mono text-ink-2">&lt;head&gt;</code> of every page on {site.domain}. It&apos;s under 1 KB, sets no cookies and stores no IP addresses.
-          </p>
-        </div>
-        <button
-          type="button"
-          onClick={() =>
-            navigator.clipboard?.writeText(site.snippet).then(() => {
-              setCopied(true);
-              setTimeout(() => setCopied(false), 1600);
-            })
-          }
-          className={secondary}
-        >
-          {copied ? <Check aria-hidden="true" className="size-4 text-good" /> : <Copy aria-hidden="true" className="size-4" />}
-          <span aria-live="polite">{copied ? "Copied" : "Copy"}</span>
-        </button>
-      </div>
-      <pre className="mt-5 overflow-x-auto rounded-lg border border-cobalt/20 bg-[#0b0b0e] px-4 py-3 font-code text-[12.5px] leading-relaxed text-ink-2">
-        {site.snippet}
-      </pre>
-    </section>
   );
 }
 
@@ -232,22 +200,27 @@ export function SiteOverview() {
           <FixFirst siteId={site.id} issues={issues.data} />
         </div>
 
-        <div className="grid gap-6 xl:grid-cols-[minmax(0,1.5fr)_minmax(0,1fr)]">
-          <SnippetCard site={site} />
-          <section className="panel min-w-0 rounded-xl p-6">
-            <h2 className="text-[17px] font-medium tracking-[-0.01em]">Scheduled audits</h2>
-            <p className="mt-1 text-[14px] text-ink-3">SEO, AEO, GEO and Speed are re-checked automatically so you see trends, not snapshots.</p>
-            <p className="mt-5 flex items-center gap-2 font-sub text-[14px]">
-              <span className="eyebrow text-[10.5px]">Cadence</span>
+        <section className="panel min-w-0 rounded-xl p-6">
+          <h2 className="text-[17px] font-medium tracking-[-0.01em]">Schedule</h2>
+          <p className="mt-1 max-w-[70ch] text-[14px] text-ink-3">
+            Light checks re-run the SEO, AEO and GEO rules on a schedule and never use credits. Speed and broken links are measured by full audits.
+          </p>
+          <div className="mt-5 flex flex-wrap items-center gap-x-6 gap-y-2 font-sub text-[14px]">
+            <p className="flex items-center gap-2">
+              <span className="eyebrow text-[10.5px]">Light checks</span>
               <span className="rounded-full border border-cobalt/30 bg-cobalt-soft px-2.5 py-0.5 text-ink">
-                {site.audit_cadence === "off" ? "Off" : site.audit_cadence === "daily" ? "Daily" : "Weekly"}
+                {site.audit_cadence === "off" ? "Paused" : site.audit_cadence === "daily" ? "Daily" : "Weekly"}
               </span>
             </p>
-            <Link href={`/app/${site.id}/settings`} className="mt-4 inline-flex items-center gap-1.5 font-sub text-[13.5px] text-ink-3 hover:text-ink">
-              Change in settings <ArrowRight aria-hidden="true" className="size-3.5" />
-            </Link>
-          </section>
-        </div>
+            <p className="flex items-center gap-2">
+              <span className="eyebrow text-[10.5px]">Monthly full audit</span>
+              <span className="rounded-full border border-line-strong px-2.5 py-0.5 text-ink-2">{site.auto_full_audit ? "On · 1 credit" : "Off"}</span>
+            </p>
+          </div>
+          <Link href={`/app/${site.id}/settings`} className="mt-4 inline-flex items-center gap-1.5 font-sub text-[13.5px] text-ink-3 hover:text-ink">
+            Change in settings <ArrowRight aria-hidden="true" className="size-3.5" />
+          </Link>
+        </section>
       </div>
     </>
   );
@@ -279,9 +252,10 @@ function DeployHookCard({ siteId }: { siteId: number }) {
 
   return (
     <section className="panel rounded-xl p-6">
-      <h2 className="text-[17px] font-medium tracking-[-0.01em]">Audit after every deploy</h2>
+      <h2 className="text-[17px] font-medium tracking-[-0.01em]">Check after each deploy</h2>
       <p className="mt-1 max-w-[60ch] text-[14px] text-ink-3">
-        Call this URL from your CI/CD (Vercel, Netlify, GitHub Actions) when a release goes live. We audit right away and alert you if something broke.
+        Call this URL from your CI/CD (Vercel, Netlify, GitHub Actions) when a release goes live. We run a full audit (1 credit), or a free light check when
+        you&rsquo;re out of credits, and alert you if something broke. At most once an hour per site.
       </p>
       {url === undefined ? (
         <div className="mt-5 h-10 animate-pulse rounded-lg bg-white/[0.04]" />
@@ -334,10 +308,12 @@ export function SiteSettings() {
   const { reload } = useWorkspace();
   const [status, setStatus] = useState<string | null>(null);
   const [cadence, setCadence] = useState<Site["audit_cadence"] | null>(null);
+  const [autoFull, setAutoFull] = useState<boolean | null>(null);
 
   if (site === undefined) return <Loading />;
   if (site === null) return <NotFound />;
   const current = cadence ?? site.audit_cadence;
+  const monthlyAudit = autoFull ?? site.auto_full_audit;
 
   async function save(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -345,7 +321,7 @@ export function SiteSettings() {
     const form = new FormData(event.currentTarget);
     setStatus("Saving…");
     try {
-      await apiFetch(`/sites/${site.id}`, { method: "PATCH", body: { name: form.get("name"), audit_cadence: current } });
+      await apiFetch(`/sites/${site.id}`, { method: "PATCH", body: { name: form.get("name"), audit_cadence: current, auto_full_audit: monthlyAudit } });
       await reload();
       setStatus("Saved");
     } catch (err) {
@@ -372,7 +348,8 @@ export function SiteSettings() {
             <input id="name" name="name" defaultValue={site.name} required maxLength={120} className={`${input} mt-1.5`} />
           </div>
           <fieldset>
-            <legend className="font-sub text-[13px] text-ink-2">Scheduled audits</legend>
+            <legend className="font-sub text-[13px] text-ink-2">Scheduled light checks</legend>
+            <p className="mt-0.5 font-sub text-[12.5px] text-ink-3">Free. Free plans check weekly at most; paid plans can check daily.</p>
             <div role="radiogroup" className="mt-1.5 inline-flex rounded-lg border border-white/[0.1] bg-white/[0.03] p-0.5">
               {CADENCES.map((c) => (
                 <button
@@ -388,6 +365,18 @@ export function SiteSettings() {
               ))}
             </div>
           </fieldset>
+          <label className="flex cursor-pointer items-start gap-3">
+            <input
+              type="checkbox"
+              checked={monthlyAudit}
+              onChange={(e) => setAutoFull(e.target.checked)}
+              className="mt-0.5 size-4 cursor-pointer accent-[#9333ea]"
+            />
+            <span>
+              <span className="block font-sub text-[13.5px] text-ink">Run a full audit every month</span>
+              <span className="block font-sub text-[12.5px] text-ink-3">Uses 1 audit credit a month. If you&rsquo;re out of credits it&rsquo;s skipped and you get an alert.</span>
+            </span>
+          </label>
           <div className="flex items-center gap-3">
             <button type="submit" className={primary}>
               Save changes
@@ -402,7 +391,7 @@ export function SiteSettings() {
 
         <section className="rounded-xl border border-bad/25 p-6">
           <h2 className="text-[17px] font-medium tracking-[-0.01em]">Delete site</h2>
-          <p className="mt-1 text-[14px] text-ink-3">Removes the site, its traffic data, audits and AI-visibility history.</p>
+          <p className="mt-1 text-[14px] text-ink-3">Removes the site with its audits, issues, link checks and alerts. Credits already used aren&rsquo;t refunded.</p>
           <button type="button" onClick={remove} className="mt-4 inline-flex h-9 cursor-pointer items-center rounded-lg border border-bad/40 px-3.5 font-sub text-[13.5px] text-bad transition-colors hover:bg-bad-soft">
             Delete {site.domain}
           </button>

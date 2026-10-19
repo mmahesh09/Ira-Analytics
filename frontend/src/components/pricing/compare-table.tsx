@@ -27,11 +27,11 @@ export function CompareTable() {
 
   return (
     <div className="relative overflow-x-auto rounded-xl border border-line">
-      <table className="w-full min-w-[640px] border-collapse font-sub text-[14px]">
+      <table className="w-full min-w-[760px] border-collapse font-sub text-[14px]">
         <caption className="sr-only">Compare plans</caption>
         <thead className="bg-white/[0.02]">
           <tr className="border-b border-line">
-            <th scope="col" className="w-[40%] px-5 py-4 text-left font-normal text-ink-3">
+            <th scope="col" className="w-[36%] px-5 py-4 text-left font-normal text-ink-3">
               Features
             </th>
             {PLANS.map((p) => (
@@ -45,8 +45,9 @@ export function CompareTable() {
         {COMPARISON.map((section) => (
           <tbody key={section.group}>
             <tr>
-              <th colSpan={4} scope="colgroup" className="px-5 pb-2 pt-7 text-left text-[12px] font-medium uppercase tracking-[0.08em] text-ink-3">
+              <th colSpan={PLANS.length + 1} scope="colgroup" className="px-5 pb-2 pt-7 text-left text-[12px] font-medium uppercase tracking-[0.08em] text-ink-3">
                 {section.group}
+                {section.note && <span className="mt-1 block text-[12.5px] font-normal normal-case tracking-normal text-ink-3">{section.note}</span>}
               </th>
             </tr>
             {section.rows.map((row) => (

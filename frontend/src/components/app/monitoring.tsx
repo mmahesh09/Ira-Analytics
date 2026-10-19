@@ -4,10 +4,11 @@ import { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
 import { Area, AreaChart, CartesianGrid, Line, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
 import { Bell, CheckCircle2, CircleAlert, CircleDot, ExternalLink, LinkIcon, LoaderCircle, Play, Rocket } from "lucide-react";
-import { apiFetch } from "@/lib/api";
+import { ApiError, apiFetch } from "@/lib/api";
 import { MODULES, ago } from "@/lib/format";
+import { AUDIT_COST, DEEP_AUDIT_COST, DEEP_AUDIT_PAGES } from "@/lib/plans";
 import { EFFORT_LABEL } from "@/lib/scoring";
-import type { AlertRow, AuditPoint, IssueRow, LinkRow, SiteStatus, VerificationRow } from "@/lib/types";
+import type { AlertRow, AuditPoint, Billing, IssueRow, LinkRow, SiteStatus, VerificationRow } from "@/lib/types";
 import { COLOR } from "@/components/audit/charts";
 import { Loading, NotFound, PageHeader, useSite } from "./workspace";
 
@@ -176,8 +177,11 @@ export function MonitoringPage() {
   const history = useApi<AuditPoint[]>(id ? `/sites/${id}/history` : null);
   const issues = useApi<IssueRow[]>(id ? `/sites/${id}/issues?status=all` : null);
   const status = useApi<SiteStatus>(id ? `/sites/${id}/status` : null);
+  const billing = useApi<Billing>("/billing");
   const [starting, setStarting] = useState(false);
+  const [notice, setNotice] = useState<{ tone: "good" | "bad"; text: string; upgrade?: boolean } | null>(null);
   const busy = Boolean(status.data && (status.data.running.length || status.data.queued.length));
+  const { reload: reloadBilling } = billing;
   const { reload: reloadStatus } = status;
   const { reload: reloadHistory } = history;
   const { reload: reloadIssues } = issues;
@@ -196,9 +200,27 @@ export function MonitoringPage() {
   if (site === undefined) return <Loading />;
   if (site === null) return <NotFound />;
 
-  async function auditNow() {
+  async function start(kind: "check" | "audit" | "deep") {
+    const left = billing.data?.credits.total;
+    if (kind !== "check") {
+      const cost = kind === "deep" ? DEEP_AUDIT_COST : AUDIT_COST;
+      const what = kind === "deep" ? `a deep audit (up to ${DEEP_AUDIT_PAGES} pages)` : "a full audit";
+      if (!window.confirm(`Run ${what} of ${site!.domain}? It uses ${cost} credit${cost > 1 ? "s" : ""}${left !== undefined ? ` (you have ${left})` : ""}. If no report comes out, the credit${cost > 1 ? "s come" : " comes"} back.`)) return;
+    }
     setStarting(true);
-    await apiFetch(`/sites/${site!.id}/audits`, { method: "POST" }).catch(() => {});
+    setNotice(null);
+    try {
+      if (kind === "check") {
+        await apiFetch(`/sites/${site!.id}/check`, { method: "POST" });
+        setNotice({ tone: "good", text: "Light check queued. It re-runs the SEO, AEO and GEO rules; it doesn't use a credit." });
+      } else {
+        await apiFetch(`/sites/${site!.id}/audits`, { body: { deep: kind === "deep" }, headers: { "Idempotency-Key": crypto.randomUUID() } });
+      }
+      reloadBilling();
+    } catch (e) {
+      const status = e instanceof ApiError ? e.status : 0;
+      setNotice({ tone: "bad", text: e instanceof Error ? e.message : "Couldn't start. Try again.", upgrade: status === 402 || status === 403 });
+    }
     reloadStatus();
     setStarting(false);
   }
@@ -211,20 +233,57 @@ export function MonitoringPage() {
       <PageHeader
         eyebrow={site.domain}
         title="Monitoring"
-        subtitle={`${site.domain} · audits ${site.audit_cadence === "off" ? "paused" : site.audit_cadence}`}
+        subtitle={`${site.domain} · light checks ${site.audit_cadence === "off" ? "paused" : site.audit_cadence}${
+          billing.data ? ` · ${billing.data.credits.total} audit credit${billing.data.credits.total === 1 ? "" : "s"} left` : ""
+        }`}
         actions={
-          <button
-            type="button"
-            onClick={auditNow}
-            disabled={busy || starting}
-            className="btn-brand inline-flex h-10 cursor-pointer items-center gap-2 rounded-full px-4 font-sub text-[13.5px] font-medium disabled:cursor-wait disabled:opacity-70"
-          >
-            {busy || starting ? <LoaderCircle aria-hidden="true" className="size-4 animate-spin" /> : <Play aria-hidden="true" className="size-3.5" />}
-            {busy ? (status.data!.running.length ? "Auditing…" : "Queued") : "Audit now"}
-          </button>
+          <>
+            <button
+              type="button"
+              onClick={() => start("check")}
+              disabled={busy || starting}
+              className="btn-ghost inline-flex h-10 cursor-pointer items-center gap-2 rounded-full px-4 font-sub text-[13.5px] disabled:cursor-wait disabled:opacity-70"
+            >
+              Light check
+            </button>
+            {billing.data?.entitlements.deep_audit && (
+              <button
+                type="button"
+                onClick={() => start("deep")}
+                disabled={busy || starting}
+                className="btn-ghost inline-flex h-10 cursor-pointer items-center gap-2 rounded-full px-4 font-sub text-[13.5px] disabled:cursor-wait disabled:opacity-70"
+              >
+                Deep audit · {DEEP_AUDIT_COST} credits
+              </button>
+            )}
+            <button
+              type="button"
+              onClick={() => start("audit")}
+              disabled={busy || starting}
+              className="btn-brand inline-flex h-10 cursor-pointer items-center gap-2 rounded-full px-4 font-sub text-[13.5px] font-medium disabled:cursor-wait disabled:opacity-70"
+            >
+              {busy || starting ? <LoaderCircle aria-hidden="true" className="size-4 animate-spin" /> : <Play aria-hidden="true" className="size-3.5" />}
+              {busy ? (status.data!.running.length ? "Running…" : "Queued") : `Full audit · ${AUDIT_COST} credit`}
+            </button>
+          </>
         }
       />
       <div className="space-y-6 px-6 py-8 lg:px-10">
+        {notice && (
+          <div
+            role={notice.tone === "bad" ? "alert" : "status"}
+            className={`flex flex-wrap items-center gap-x-3 gap-y-1 rounded-lg border px-4 py-3 font-sub text-[13.5px] text-ink-2 ${
+              notice.tone === "bad" ? "border-bad/30 bg-bad-soft" : "border-good/30 bg-good-soft"
+            }`}
+          >
+            <span>{notice.text}</span>
+            {notice.upgrade && (
+              <Link href="/app/billing" className="font-medium text-ink underline-offset-4 hover:underline">
+                See plans and credits
+              </Link>
+            )}
+          </div>
+        )}
         <HealthStats points={points} open={issues.data ? open : null} status={status.data} cadence={site.audit_cadence} />
 
         <div className="grid gap-6 xl:grid-cols-[minmax(0,1.6fr)_minmax(0,1fr)]">
@@ -253,6 +312,9 @@ export function MonitoringPage() {
     </>
   );
 }
+
+/** modules a free light check measures; other "Mark fixed" requests wait for the next full audit */
+const LIGHT_MODULES = ["seo", "aeo", "geo"];
 
 const VERDICT: Record<VerificationRow["status"], { label: string; className: string }> = {
   queued: { label: "Checking", className: "border-cobalt/30 bg-cobalt-soft text-ink" },
@@ -284,15 +346,17 @@ function Verifications({ rows }: { rows: VerificationRow[] }) {
         <CheckCircle2 aria-hidden="true" className="size-3.5 text-cobalt" /> Before &amp; after
       </p>
       <h2 className="mt-2 text-[17px] font-medium tracking-[-0.01em]">Verified fixes</h2>
-      <p className="mt-1 text-[14px] text-ink-3">Each &ldquo;Mark fixed&rdquo; runs a fresh audit and compares it with the audit that found the issue.</p>
+      <p className="mt-1 text-[14px] text-ink-3">
+        &ldquo;Mark fixed&rdquo; rechecks SEO, AEO and GEO fixes with a free light check. Speed and accessibility fixes are confirmed by your next full audit.
+      </p>
       <ul className="mt-5 grid gap-3 md:grid-cols-2">
         {rows.slice(0, 6).map((v) => (
           <li key={v.id} className="rounded-lg border border-line bg-white/[0.015] p-4">
             <div className="flex items-start justify-between gap-3">
               <p className="min-w-0 text-[14px] leading-snug text-ink">{v.title}</p>
               <span className={`shrink-0 rounded-full border px-2 py-0.5 font-sub text-[11px] font-medium ${VERDICT[v.status].className}`}>
-                {v.status === "queued" && <LoaderCircle aria-hidden="true" className="mr-1 inline size-3 animate-spin" />}
-                {VERDICT[v.status].label}
+                {v.status === "queued" && LIGHT_MODULES.includes(v.module) && <LoaderCircle aria-hidden="true" className="mr-1 inline size-3 animate-spin" />}
+                {v.status === "queued" && !LIGHT_MODULES.includes(v.module) ? "Next full audit" : VERDICT[v.status].label}
               </span>
             </div>
             <div className="mt-3 grid grid-cols-2 gap-3">
@@ -423,7 +487,7 @@ export function LinksPage() {
   const internal = rows.filter((r) => r.internal).length;
   return (
     <>
-      <PageHeader eyebrow={site.domain} title="Broken links" subtitle="Checked on every scheduled audit, across your own pages and the sites you link to." />
+      <PageHeader eyebrow={site.domain} title="Broken links" subtitle="Checked with every full audit, across your own pages and the sites you link to." />
       <div className="space-y-5 px-6 py-8 lg:px-10">
         {links.data && (
           <p className="font-sub text-[14px] text-ink-2">

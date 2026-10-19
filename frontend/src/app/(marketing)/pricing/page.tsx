@@ -8,25 +8,43 @@ import { FAQ, type FAQItem } from "@/components/ui/faq-section";
 
 export const metadata: Metadata = {
   title: "Pricing",
-  description: "Rankwise is free for one site. Pro and Business add more sites, weekly or daily audits, AI-visibility tracking and Google integrations.",
+  description: "Rankwise is free for one website with a full audit every month. Pro, Business and Scale add websites, monthly audit credits and daily light checks.",
 };
 
 const FAQS: FAQItem[] = [
   {
+    question: "What is an audit credit?",
+    answer:
+      "One credit runs one full audit of a website: SEO, AEO, GEO and Speed scores, every issue with its fix, and a broken-link crawl sized by your plan. A deep audit on Business and Scale crawls up to 500 pages for 3 credits. If an audit can't produce a report, the credit comes back automatically.",
+  },
+  {
+    question: "What are light checks?",
+    answer:
+      "Fast SEO, AEO and GEO rule checks that run on your schedule between full audits, and when you click “Mark fixed”. They never use credits; each plan has a daily limit. Speed and broken links are measured by full audits.",
+  },
+  {
+    question: "Do unused credits roll over?",
+    answer: "Monthly credits don't: each month (or billing period) starts fresh. Credits from packs are kept separately, are used after your monthly credits, and last 12 months.",
+  },
+  {
+    question: "Can I buy more credits?",
+    answer: "Yes, on any paid plan: 5 credits or 20 credits as a one-time purchase, without changing your plan.",
+  },
+  {
     question: "Is the Free plan really free?",
-    answer: "Yes. One site, 10k pageviews a month and monthly audits, with no card and no time limit.",
+    answer: "Yes. One website and one full audit every month, plus weekly light checks, with no card and no time limit.",
   },
   {
-    question: "Can I change plans later?",
-    answer: "Yes. You can move between plans at any time, and your sites and history stay exactly where they are.",
+    question: "What if a payment fails?",
+    answer: "Razorpay retries it for a few days and you keep your plan meanwhile. If it still fails, the account moves to Free; credits already granted stay usable until they expire, and nothing is deleted.",
   },
   {
-    question: "How does billing work?",
-    answer: "Paid plans renew every month through Razorpay. Pay by card, UPI Autopay or netbanking in INR; international cards can pay in USD where available.",
+    question: "Which currencies can I pay in?",
+    answer: "INR by card, UPI Autopay or netbanking, plus GST where applicable. USD for international cards is offered only where it's enabled; INR prices are set locally, not converted live.",
   },
   {
     question: "How do I cancel?",
-    answer: "From Billing in your workspace, at any time. You keep your plan until the end of the period you've paid for, then move to Free with your data intact.",
+    answer: "From Billing in your workspace, at any time. You keep your plan until the end of the period you've paid for, then move to Free with your sites and reports intact.",
   },
 ];
 
@@ -37,7 +55,12 @@ export default function PricingPage() {
         <div aria-hidden="true" className="top-light absolute inset-0" />
         <div className="relative mx-auto max-w-[1200px] px-4 pb-20 pt-20 sm:px-6 lg:pt-28">
           <div className="flex flex-wrap items-end justify-between gap-6">
-            <SectionHead as="h1" label="Pricing" title="Simple plans. Start free." body="Free for one site. Upgrade when you need more sites, faster audits and AI-visibility tracking." />
+            <SectionHead
+              as="h1"
+              label="Pricing"
+              title="Simple plans. Start free."
+              body="Every plan includes full audits with fixes and free light checks in between. Pay for more websites and more audits, nothing else."
+            />
             <Reveal delay={0.06}>
               <CurrencyToggle />
             </Reveal>

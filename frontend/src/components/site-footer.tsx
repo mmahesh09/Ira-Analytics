@@ -39,7 +39,7 @@ export function SiteFooter() {
             <Logo />
           </Link>
           <p className="mt-4 max-w-[36ch] text-[15px] leading-relaxed text-ink-3">
-            SEO, answer-engine and AI-visibility audits with every fix ranked and the code to ship it.
+            SEO, answer-engine and AI-search readiness audits with every fix ranked and the code to ship it.
           </p>
         </div>
         <nav aria-label="Footer" className="grid grid-cols-2 gap-8 sm:grid-cols-3">

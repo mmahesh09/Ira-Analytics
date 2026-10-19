@@ -7,12 +7,14 @@ and save a screenshot so the report can draw numbered boxes over the problems.
 import asyncio
 import uuid
 from pathlib import Path
+from urllib.parse import urlparse
 
 from playwright.async_api import Error as PlaywrightError
-from playwright.async_api import async_playwright
+from playwright.async_api import Route, async_playwright
 
 from .common import score_checks
 from .config import settings
+from .fetcher import AuditError, _assert_public_host
 from .models import Check, ModuleResult
 from .performance import _browser_path
 from .storage import save_shot
@@ -51,6 +53,29 @@ BOXES = """(targets) => targets.map(([n, sel]) => {
 }).filter(Boolean)"""
 
 
+def _network_guard():
+    """Route handler for every request the browser makes. The page's own scripts, redirects and meta refreshes
+    can point the browser anywhere, and its screenshot is shown to the user, so each request must pass the same
+    private-network check as the fetcher (see fetcher._assert_public_host) or it is aborted."""
+    allowed: dict[str, bool] = {}
+
+    async def guard(route: Route) -> None:
+        parsed = urlparse(route.request.url)
+        host = parsed.hostname or ""
+        if parsed.scheme not in ("http", "https") or not host:
+            await route.abort("blockedbyclient")
+            return
+        if host not in allowed:
+            try:
+                await _assert_public_host(host)
+                allowed[host] = True
+            except AuditError:
+                allowed[host] = False
+        await (route.continue_() if allowed[host] else route.abort("blockedbyclient"))
+
+    return guard
+
+
 async def analyze_accessibility(url: str) -> ModuleResult:
     browser_path = _browser_path()
     if not (settings.browser_checks and browser_path):
@@ -59,7 +84,10 @@ async def analyze_accessibility(url: str) -> ModuleResult:
         async with _browser_slot, async_playwright() as pw:
             browser = await pw.chromium.launch(executable_path=browser_path, headless=True, args=["--no-first-run", "--disable-extensions", *(["--no-sandbox", "--disable-dev-shm-usage"] if settings.chrome_no_sandbox else [])])
             try:
-                page = await browser.new_page(viewport=VIEWPORT, user_agent=settings.user_agent + " (accessibility check)")
+                # service workers could fetch outside the route guard, so they are blocked
+                context = await browser.new_context(viewport=VIEWPORT, user_agent=settings.user_agent + " (accessibility check)", service_workers="block")
+                await context.route("**/*", _network_guard())
+                page = await context.new_page()
                 await page.goto(url, wait_until="load", timeout=30_000)
                 await page.wait_for_timeout(800)  # let late layout settle before measuring
                 await page.add_script_tag(content=AXE_JS)

@@ -104,7 +104,9 @@ async def _visibility_probes(page: Page, brand: str) -> dict:
     return {"category": plan.get("category", ""), "results": list(results)}
 
 
-async def analyze_geo(page: Page, site: SiteFiles) -> ModuleResult:
+async def analyze_geo(page: Page, site: SiteFiles, probes: bool = True) -> ModuleResult:
+    """probes=False (light checks, previews) never calls an LLM, even when a key is configured."""
+    run_probes = probes
     checks: list[Check] = []
 
     crawlers = _crawler_access(site, page.url)
@@ -175,7 +177,7 @@ async def analyze_geo(page: Page, site: SiteFiles) -> ModuleResult:
 
     brand = _brand(page)
     probes = None
-    if settings.openrouter_api_key:
+    if run_probes and settings.openrouter_api_key:
         try:
             probes = await _visibility_probes(page, brand)
         except (httpx.HTTPError, ValueError, KeyError, json.JSONDecodeError) as exc:

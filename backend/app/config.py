@@ -38,11 +38,17 @@ class Settings:
     dataforseo_login: str = os.getenv("DATAFORSEO_LOGIN", "")
     dataforseo_password: str = os.getenv("DATAFORSEO_PASSWORD", "")
     rate_limit_per_10min: int = int(os.getenv("RATE_LIMIT_PER_10MIN", "10"))
+    # anonymous preview audits (light checks, not saved), counted in Postgres per hashed IP per UTC day
+    preview_per_ip_per_day: int = int(os.getenv("PREVIEW_PER_IP_PER_DAY", "2"))
+    preview_daily_cap: int = int(os.getenv("PREVIEW_DAILY_CAP", "200"))
+    preview_salt: str = os.getenv("PREVIEW_SALT", "")
+    # proxies in front of the API that append to X-Forwarded-For (Render: 1). 0 = ignore the header entirely
+    trusted_proxy_hops: int = int(os.getenv("TRUSTED_PROXY_HOPS", "0"))
 
     database_url: str = async_db_url(os.getenv("DATABASE_URL", "postgresql+asyncpg://postgres:postgres@localhost:5432/rankwise"))
-    # run the job loop inside the API process (single-container hosts such as Render's free tier)
     # Neon Object Storage bucket for Visual Doctor screenshots (credentials come from the AWS_* variables)
     shots_bucket: str = os.getenv("SHOTS_BUCKET", "assets")
+    # run the job loop inside the API process (single-container hosts such as Render's free tier)
     embedded_worker: bool = os.getenv("EMBEDDED_WORKER", "false").lower() == "true"
     public_api_url: str = os.getenv("PUBLIC_API_URL", "http://localhost:8000")
 

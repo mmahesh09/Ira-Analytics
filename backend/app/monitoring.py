@@ -120,10 +120,17 @@ def next_run(cadence: str, plan_cadence: str, now: datetime) -> datetime | None:
 
 # ---------- database ----------
 
-async def record_audit(db: AsyncSession, site: Site, report: AuditReport, trigger: str) -> dict:
-    """Stores an audit, updates issue history and raises alerts. Returns a summary of what changed."""
+async def record_audit(db: AsyncSession, site: Site, report: AuditReport, trigger: str, kind: str = "full", commit: bool = True) -> dict:
+    """Stores an audit, updates issue history and raises alerts. Returns a summary of what changed.
+
+    kind: full | deep | check. Regressions compare like with like (a light check has no Speed module and a
+    differently weighted overall score). commit=False lets the caller settle the credit in the same transaction.
+    """
     data = report.model_dump()
-    previous = await db.scalar(select(Audit).where(Audit.site_id == site.id).order_by(Audit.created_at.desc()).limit(1))
+    family = ("check",) if kind == "check" else ("full", "deep")
+    previous = await db.scalar(
+        select(Audit).where(Audit.site_id == site.id, Audit.kind.in_(family)).order_by(Audit.created_at.desc()).limit(1)
+    )
 
     def score(key: str) -> int | None:
         mod = report.modules.get(key)
@@ -139,6 +146,7 @@ async def record_audit(db: AsyncSession, site: Site, report: AuditReport, trigge
         speed=score("performance"),
         report=data,
         trigger=trigger,
+        kind=kind,
     )
     db.add(audit)
     await db.flush()
@@ -170,5 +178,8 @@ async def record_audit(db: AsyncSession, site: Site, report: AuditReport, trigge
     for message in messages:
         db.add(Alert(site_id=site.id, kind="regression" if "slower" in message or "dropped" in message else "new_issue", message=message[:500]))
 
-    await db.commit()
+    if commit:
+        await db.commit()
+    else:
+        await db.flush()
     return {"audit_id": audit.id, "new": len(change.new), "resolved": len(change.resolved), "alerts": len(messages)}

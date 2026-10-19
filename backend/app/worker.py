@@ -6,32 +6,65 @@ One job at a time keeps memory predictable (an audit may launch a local Lighthou
 
 import asyncio
 import logging
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 
-from sqlalchemy import or_, select
+from sqlalchemy import func, or_, select
 
-from . import jobs
+from . import credits, jobs
 from .db import SessionLocal
 from .monitoring import next_run
 from .plans import ENTITLEMENTS, effective_plan
-from .schema import Site
+from .schema import Alert, Audit, Site
 
 log = logging.getLogger("rankwise.worker")
 SCHEDULE_EVERY = 60  # seconds
 IDLE_SLEEP = 5
+AUTO_FULL_EVERY = timedelta(days=28)
+
+
+async def _monthly_full_audit(db, site: Site, now: datetime) -> None:
+    """Opt-in (site.auto_full_audit): one full audit a month, paid with a credit, never more."""
+    last_full = await db.scalar(select(func.max(Audit.created_at)).where(Audit.site_id == site.id, Audit.kind.in_(("full", "deep"))))
+    if last_full and now - last_full < AUTO_FULL_EVERY or await jobs.pending(db, "audit", site.id):
+        return
+    site_id, owner_id = site.id, site.owner_id
+    try:
+        reservation = await credits.reserve(db, owner_id, "audit", f"auto:{site_id}:{now:%Y-%m}", site_id)
+    except credits.InsufficientCredits:
+        await db.rollback()
+        recent = await db.scalar(select(Alert.id).where(Alert.site_id == site_id, Alert.kind == "credits", Alert.created_at > now - timedelta(days=7)).limit(1))
+        if not recent:
+            db.add(Alert(site_id=site_id, kind="credits", message="Your monthly full audit was skipped: no audit credits left. Light checks keep running."))
+            await db.commit()
+        return
+    if reservation.status == "held":
+        jobs.add(db, "audit", {"site_id": site_id, "trigger": "scheduled", "reservation_id": reservation.id})
+    await db.commit()
 
 
 async def schedule_due() -> int:
-    """Queues an audit + link check for every site whose next scheduled run has arrived."""
+    """Light checks for every site whose next scheduled run has arrived (no credits, capped per day by the
+    plan), plus the opt-in monthly full audit. Scheduled monitoring never spends credits on its own."""
     now = datetime.now(timezone.utc)
     async with SessionLocal() as db:
-        due = list(await db.scalars(select(Site).where(Site.audit_cadence != "off", or_(Site.next_audit_at.is_(None), Site.next_audit_at <= now))))
-        for site in due:
-            plan = ENTITLEMENTS[await effective_plan(db, site.owner_id)]
-            await jobs.enqueue(db, "audit", {"site_id": site.id, "trigger": "scheduled"})
-            await jobs.enqueue(db, "links", {"site_id": site.id})
-            site.next_audit_at = next_run(site.audit_cadence, plan.audit_cadence, now)
+        await credits.sweep_stale_reservations(db)
         await db.commit()
+        due = list(await db.scalars(select(Site.id).where(Site.audit_cadence != "off", or_(Site.next_audit_at.is_(None), Site.next_audit_at <= now))))
+        for site_id in due:
+            # the helpers commit or roll back (which expires loaded rows), so reload the site each time
+            site = await db.get(Site, site_id, populate_existing=True)
+            if site is None:
+                continue
+            plan = ENTITLEMENTS[await effective_plan(db, site.owner_id)]
+            _, skipped = await jobs.enqueue_check(db, site, "scheduled")
+            if skipped == "daily_limit":
+                log.info("site %s: daily light-check limit reached", site_id)
+            site = await db.get(Site, site_id, populate_existing=True)
+            if site.auto_full_audit:
+                await _monthly_full_audit(db, site, now)
+                site = await db.get(Site, site_id, populate_existing=True)
+            site.next_audit_at = next_run(site.audit_cadence, plan.check_cadence, now)
+            await db.commit()
     return len(due)
 
 

@@ -61,9 +61,9 @@ def _enrich(result: ModuleResult, page, site: SiteFiles) -> None:
             check.snippet = None
 
 
-async def audit_once(raw_url: str) -> AuditReport:
+async def audit_once(raw_url: str, mode: str = "full") -> AuditReport:
     """Runs a fresh audit to completion (no cache). Raises AuditError with the user-facing reason."""
-    async for event in run_audit(raw_url, use_cache=False):
+    async for event in run_audit(raw_url, use_cache=False, mode=mode):
         if event["type"] == "error":
             raise AuditError(event["message"])
         if event["type"] == "result":
@@ -71,14 +71,17 @@ async def audit_once(raw_url: str) -> AuditReport:
     raise AuditError("The audit did not complete.")
 
 
-async def run_audit(raw_url: str, use_cache: bool = True) -> AsyncIterator[dict]:
+async def run_audit(raw_url: str, use_cache: bool = True, mode: str = "full") -> AsyncIterator[dict]:
+    """mode="full": every module. mode="light": fetch-only SEO/AEO/GEO rules, with no PageSpeed, browser,
+    DataForSEO or LLM calls, cheap enough for scheduled monitoring and anonymous previews."""
     try:
         url = normalize_url(raw_url)
     except AuditError as exc:
         yield {"type": "error", "message": str(exc)}
         return
 
-    cached = _cache.get(url)
+    cache_key = f"{mode}:{url}"
+    cached = _cache.get(cache_key)
     if use_cache and cached and time.time() - cached[0] < CACHE_TTL:
         yield {"type": "result", "report": cached[1].model_dump(), "cached": True}
         return
@@ -106,14 +109,18 @@ async def run_audit(raw_url: str, use_cache: bool = True) -> AsyncIterator[dict]
         async def aeo() -> ModuleResult:
             return analyze_aeo(page)
 
+        light = mode == "light"
         tasks = [
             asyncio.create_task(analyze_seo(client, page, fetched, site)),
             asyncio.create_task(aeo()),
-            asyncio.create_task(analyze_geo(page, site)),
-            asyncio.create_task(analyze_performance(fetched.final_url)),
-            asyncio.create_task(analyze_accessibility(fetched.final_url)),
-            asyncio.create_task(analyze_traffic(parsed.hostname or "")),
+            asyncio.create_task(analyze_geo(page, site, probes=not light)),
         ]
+        if not light:
+            tasks += [
+                asyncio.create_task(analyze_performance(fetched.final_url)),
+                asyncio.create_task(analyze_accessibility(fetched.final_url)),
+                asyncio.create_task(analyze_traffic(parsed.hostname or "")),
+            ]
         modules: dict[str, ModuleResult] = {}
         for done in asyncio.as_completed(tasks):
             try:
@@ -132,6 +139,7 @@ async def run_audit(raw_url: str, use_cache: bool = True) -> AsyncIterator[dict]
         fetched_at=datetime.now(timezone.utc).isoformat(),
         overall_score=overall_score(modules),
         modules=modules,
+        mode=mode,
     )
-    _cache[url] = (time.time(), report)
+    _cache[cache_key] = (time.time(), report)
     yield {"type": "result", "report": report.model_dump()}

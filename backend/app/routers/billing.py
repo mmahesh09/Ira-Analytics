@@ -11,18 +11,35 @@ from pydantic import BaseModel
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from .. import payments
+from .. import credits, payments
 from ..auth import current_user
 from ..config import settings
 from ..db import get_session
+from ..jobs import checks_today
 from ..plans import ENTITLED_STATUSES, ENTITLEMENTS, current_subscription
-from ..schema import BillingEvent, Subscription, User
+from ..schema import BillingEvent, CreditReservation, Site, Subscription, User
 
 router = APIRouter(tags=["billing"])
 log = logging.getLogger("rankwise.billing")
 
-PlanName = Literal["pro", "business"]
+PlanName = Literal["pro", "business", "scale"]
 CurrencyName = Literal["inr", "usd"]
+
+
+class CreditsOut(BaseModel):
+    total: int
+    monthly: int
+    pack: int
+    adjustment: int
+    monthly_expires_at: datetime | None
+
+
+class UsageRow(BaseModel):
+    site: str | None
+    kind: str  # audit | deep_audit
+    cost: int
+    status: str  # held (running) | captured (charged) | released (refunded)
+    created_at: datetime
 
 
 class BillingOut(BaseModel):
@@ -34,6 +51,9 @@ class BillingOut(BaseModel):
     entitlements: dict
     payments_enabled: bool
     usd_enabled: bool
+    credits: CreditsOut
+    checks_today: int
+    usage: list[UsageRow]
 
 
 class SubscribeIn(BaseModel):
@@ -74,8 +94,18 @@ async def _state(db: AsyncSession, user: User) -> BillingOut:
         except payments.PaymentsError as exc:
             log.warning("subscription sync failed: %s", exc)
     entitled = sub is not None and sub.status in ENTITLED_STATUSES
-    plan = sub.plan_id if entitled else "free"
+    plan = sub.plan_id if entitled and sub.plan_id in ENTITLEMENTS else "free"
+    await credits.ensure_monthly_grant(db, user.id)  # idempotent: shows this month's allowance before first use
+    await db.commit()
+    balance = await credits.balance(db, user.id)
+    usage = (await db.execute(
+        select(CreditReservation, Site.name).outerjoin(Site, Site.id == CreditReservation.site_id)
+        .where(CreditReservation.user_id == user.id).order_by(CreditReservation.created_at.desc()).limit(20)
+    )).all()
     return BillingOut(
+        credits=CreditsOut(total=balance.total, monthly=balance.monthly, pack=balance.pack, adjustment=balance.adjustment, monthly_expires_at=balance.monthly_expires_at),
+        checks_today=await checks_today(db, user.id),
+        usage=[UsageRow(site=name, kind=r.kind, cost=r.cost, status=r.status, created_at=r.created_at) for r, name in usage],
         plan=plan,
         status=sub.status if sub else None,
         currency=sub.currency if sub else None,

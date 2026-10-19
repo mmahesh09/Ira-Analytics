@@ -23,6 +23,10 @@ services:
         value: api
       - key: EMBEDDED_WORKER # no separate worker on the free tier: run scheduled audits inside the API
         value: "true"
+      - key: TRUSTED_PROXY_HOPS # Render's proxy appends the real client IP to X-Forwarded-For (anonymous preview limits)
+        value: "1"
+      - key: PREVIEW_SALT # hashes visitor IPs in preview_usage
+        generateValue: true
       - key: CORS_ORIGINS
         value: https://rankwise-xi.vercel.app
       - key: PUBLIC_API_URL

@@ -50,3 +50,5 @@ class AuditReport(BaseModel):
     fetched_at: str
     overall_score: int
     modules: dict[str, ModuleResult]
+    # full: every module | light: fetch-only SEO/AEO/GEO rules (monitoring checks and the anonymous preview)
+    mode: str = "full"

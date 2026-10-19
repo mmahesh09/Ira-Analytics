@@ -1,8 +1,8 @@
 """Database tables. Migrations live in backend/alembic."""
 
-from datetime import datetime
+from datetime import date, datetime
 
-from sqlalchemy import JSON, BigInteger, Boolean, DateTime, ForeignKey, Index, Integer, String, Text, func
+from sqlalchemy import JSON, BigInteger, Boolean, CheckConstraint, Date, DateTime, ForeignKey, Index, Integer, String, Text, func
 from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column
 
@@ -50,6 +50,8 @@ class Site(Base):
     next_audit_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
     # secret in the deploy webhook URL (Change Detective: audit right after a release)
     deploy_token: Mapped[str | None] = mapped_column(String(48), unique=True)
+    # opt-in: one full audit a month on the schedule, paid with a credit (scheduled monitoring is light checks)
+    auto_full_audit: Mapped[bool] = mapped_column(Boolean, default=False, server_default="false")
     created_at: Mapped[datetime] = _now()
 
 
@@ -173,6 +175,8 @@ class Audit(Base):
     speed: Mapped[int | None] = mapped_column(Integer)
     report: Mapped[dict] = mapped_column(JSONType)
     trigger: Mapped[str] = mapped_column(String(16), default="manual")
+    # full (1 credit) | deep (3 credits) | check (light, no credits)
+    kind: Mapped[str] = mapped_column(String(8), default="full", server_default="full")
     created_at: Mapped[datetime] = _now()
 
 
@@ -233,6 +237,10 @@ class Subscription(Base):
     current_start: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
     current_end: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
     cancel_at_cycle_end: Mapped[bool] = mapped_column(Boolean, default=False)
+    # created_at of the newest webhook applied, so a late, older event can't roll the state back
+    last_event_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    # a downgrade waiting for the end of the current period
+    scheduled_plan_id: Mapped[str | None] = mapped_column(String(16))
     created_at: Mapped[datetime] = _now()
     updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now())
 
@@ -245,6 +253,106 @@ class BillingEvent(Base):
     type: Mapped[str] = mapped_column(String(64))
     payload: Mapped[dict] = mapped_column(JSONType)
     received_at: Mapped[datetime] = _now()
+
+
+class CreditGrant(Base):
+    """A bucket of full-audit credits: a month's allowance, a purchased pack or a manual adjustment."""
+
+    __tablename__ = "credit_grants"
+    id: Mapped[int] = mapped_column(BigInteger, primary_key=True)
+    user_id: Mapped[str] = mapped_column(Text, ForeignKey("user.id", ondelete="CASCADE"), index=True)
+    source: Mapped[str] = mapped_column(String(16))  # monthly | pack | adjustment
+    amount: Mapped[int] = mapped_column(Integer)
+    remaining: Mapped[int] = mapped_column(Integer)
+    period_start: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    expires_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    subscription_id: Mapped[int | None] = mapped_column(ForeignKey("subscriptions.id", ondelete="SET NULL"))
+    payment_id: Mapped[str | None] = mapped_column(String(64))
+    # idempotency: monthly:free:<user>:<YYYY-MM> | monthly:sub:<rzp sub>:<period start> | pack:<rzp payment>
+    key: Mapped[str] = mapped_column(String(160), unique=True)
+    created_at: Mapped[datetime] = _now()
+
+    __table_args__ = (
+        CheckConstraint("remaining >= 0 AND remaining <= amount", name="ck_credit_grants_remaining"),
+        Index("ix_credit_grants_user_expires", "user_id", "expires_at"),
+    )
+
+
+class CreditReservation(Base):
+    """Credits held for one queued full audit: captured when the report is stored, released if none is."""
+
+    __tablename__ = "credit_reservations"
+    id: Mapped[str] = mapped_column(String(32), primary_key=True)  # uuid4 hex
+    user_id: Mapped[str] = mapped_column(Text, ForeignKey("user.id", ondelete="CASCADE"), index=True)
+    site_id: Mapped[int | None] = mapped_column(ForeignKey("sites.id", ondelete="SET NULL"))
+    kind: Mapped[str] = mapped_column(String(16))  # audit | deep_audit
+    cost: Mapped[int] = mapped_column(Integer)
+    status: Mapped[str] = mapped_column(String(12), default="held")  # held | captured | released
+    allocations: Mapped[list] = mapped_column(JSONType, default=list)  # [{"grant_id": 1, "n": 1}, ...]
+    key: Mapped[str] = mapped_column(String(160), unique=True)
+    reason: Mapped[str | None] = mapped_column(String(200))
+    audit_id: Mapped[int | None] = mapped_column(ForeignKey("audits.id", ondelete="SET NULL"))
+    created_at: Mapped[datetime] = _now()
+    settled_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+
+    __table_args__ = (Index("ix_credit_reservations_status_created", "status", "created_at"),)
+
+
+class CreditLedger(Base):
+    """Append-only history of every credit movement; `key` makes each movement happen at most once."""
+
+    __tablename__ = "credit_ledger"
+    id: Mapped[int] = mapped_column(BigInteger, primary_key=True)
+    user_id: Mapped[str] = mapped_column(Text, ForeignKey("user.id", ondelete="CASCADE"), index=True)
+    grant_id: Mapped[int | None] = mapped_column(ForeignKey("credit_grants.id", ondelete="SET NULL"))
+    reservation_id: Mapped[str | None] = mapped_column(ForeignKey("credit_reservations.id", ondelete="SET NULL"))
+    kind: Mapped[str] = mapped_column(String(16))  # grant | reserve | release | capture | adjust
+    delta: Mapped[int] = mapped_column(Integer)  # change to the grant's remaining credits
+    note: Mapped[str | None] = mapped_column(String(200))
+    key: Mapped[str] = mapped_column(String(200), unique=True)
+    created_at: Mapped[datetime] = _now()
+
+
+class CreditOrder(Base):
+    """A one-time Razorpay Order for a credit pack; the server fixes pack and amount, never the client."""
+
+    __tablename__ = "credit_orders"
+    id: Mapped[str] = mapped_column(String(64), primary_key=True)  # Razorpay order id
+    user_id: Mapped[str] = mapped_column(Text, ForeignKey("user.id", ondelete="CASCADE"), index=True)
+    pack_id: Mapped[str] = mapped_column(String(16))
+    credits: Mapped[int] = mapped_column(Integer)
+    amount: Mapped[int] = mapped_column(Integer)
+    currency: Mapped[str] = mapped_column(String(3))
+    status: Mapped[str] = mapped_column(String(12), default="created")  # created | paid
+    payment_id: Mapped[str | None] = mapped_column(String(64))
+    created_at: Mapped[datetime] = _now()
+
+
+class Payment(Base):
+    """A Razorpay payment (subscription charge or pack purchase), for the billing history."""
+
+    __tablename__ = "payments"
+    id: Mapped[str] = mapped_column(String(64), primary_key=True)  # Razorpay payment id
+    user_id: Mapped[str] = mapped_column(Text, ForeignKey("user.id", ondelete="CASCADE"), index=True)
+    kind: Mapped[str] = mapped_column(String(16))  # subscription | pack
+    subscription_id: Mapped[int | None] = mapped_column(ForeignKey("subscriptions.id", ondelete="SET NULL"))
+    order_id: Mapped[str | None] = mapped_column(String(64))
+    invoice_id: Mapped[str | None] = mapped_column(String(64))
+    amount: Mapped[int] = mapped_column(Integer)
+    currency: Mapped[str] = mapped_column(String(3))
+    status: Mapped[str] = mapped_column(String(16))  # captured | failed | refunded
+    description: Mapped[str | None] = mapped_column(String(200))
+    paid_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    created_at: Mapped[datetime] = _now()
+
+
+class PreviewUsage(Base):
+    """Anonymous preview audits per hashed client IP per UTC day (survives restarts, shared by instances)."""
+
+    __tablename__ = "preview_usage"
+    ip_hash: Mapped[str] = mapped_column(String(64), primary_key=True)
+    day: Mapped[date] = mapped_column(Date, primary_key=True)
+    count: Mapped[int] = mapped_column(Integer, default=0)
 
 
 class Alert(Base):

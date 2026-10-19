@@ -1,29 +1,33 @@
 """Monitoring API: health history, issues, broken links, audit-now, deploy webhook and the alerts inbox."""
 
 import secrets
-from datetime import datetime
+from datetime import datetime, timedelta, timezone
 from typing import Literal
 
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, Header, HTTPException
 from pydantic import BaseModel
 from sqlalchemy import func, select, update
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from .. import jobs
+from .. import credits, jobs
 from ..auth import current_user, owned_site
 from ..config import settings
 from ..priority import CONFIDENCE, DEFAULT_CONFIDENCE, DEFAULT_EFFORT, EFFORT
 from ..db import get_session
 from ..monitoring import module_score
+from ..plans import ENTITLEMENTS, effective_plan
 from ..schema import Alert, Audit, Issue, Job, LinkCheck, Site, User, Verification
 
 router = APIRouter(tags=["monitoring"])
+DEPLOY_COOLDOWN = timedelta(hours=1)
+LIGHT_MODULES = ("seo", "aeo", "geo")  # modules a light check measures
 
 
 class AuditPoint(BaseModel):
     id: int
     created_at: datetime
     trigger: str
+    kind: str = "full"  # full | deep | check
     overall: int
     seo: int | None
     aeo: int | None
@@ -75,10 +79,20 @@ class AlertOut(BaseModel):
 
 # ---------- history & issues ----------
 
+HISTORY_KINDS = {"full": ("full", "deep"), "check": ("check",), "all": ("full", "deep", "check")}
+
+
 @router.get("/api/sites/{site_id}/history", response_model=list[AuditPoint])
-async def history(site: Site = Depends(owned_site), db: AsyncSession = Depends(get_session), limit: int = 90):
-    rows = await db.scalars(select(Audit).where(Audit.site_id == site.id).order_by(Audit.created_at.desc()).limit(min(limit, 365)))
-    return [AuditPoint(id=a.id, created_at=a.created_at, trigger=a.trigger, overall=a.overall_score, seo=a.seo, aeo=a.aeo, geo=a.geo, speed=a.speed) for a in reversed(list(rows))]
+async def history(site: Site = Depends(owned_site), db: AsyncSession = Depends(get_session), limit: int = 90,
+                  kind: Literal["full", "check", "all"] = "full"):
+    """Score history. Full audits by default: light checks have no Speed and a differently weighted overall."""
+    rows = await db.scalars(
+        select(Audit).where(Audit.site_id == site.id, Audit.kind.in_(HISTORY_KINDS[kind])).order_by(Audit.created_at.desc()).limit(min(limit, 365))
+    )
+    return [
+        AuditPoint(id=a.id, created_at=a.created_at, trigger=a.trigger, kind=a.kind, overall=a.overall_score, seo=a.seo, aeo=a.aeo, geo=a.geo, speed=a.speed)
+        for a in reversed(list(rows))
+    ]
 
 
 @router.get("/api/sites/{site_id}/audits/{audit_id}")
@@ -113,11 +127,56 @@ async def links(site: Site = Depends(owned_site), db: AsyncSession = Depends(get
 
 # ---------- run now & status ----------
 
+class AuditNowIn(BaseModel):
+    deep: bool = False
+
+
+async def _queue_paid_audit(db: AsyncSession, site: Site, kind: str, key: str, trigger: str) -> dict:
+    """Reserves credits and queues the audit in one transaction. Raises InsufficientCredits."""
+    site_id, owner_id = site.id, site.owner_id
+    await credits.lock_user(db, owner_id)
+    if await jobs.pending(db, "audit", site_id):
+        await db.rollback()
+        return {"queued": False, "reason": "already_queued"}
+    reservation = await credits.reserve(db, owner_id, kind, key, site_id)
+    status, cost = reservation.status, reservation.cost  # read before any rollback expires the row
+    if status != "held":  # the same request was already processed
+        await db.rollback()
+        return {"queued": False, "reason": f"already_{status}"}
+    jobs.add(db, "audit", {"site_id": site_id, "trigger": trigger, "reservation_id": reservation.id})
+    await db.commit()
+    return {"queued": True, "credits_charged": cost, "credits_left": (await credits.balance(db, owner_id)).total}
+
+
 @router.post("/api/sites/{site_id}/audits", status_code=202)
-async def audit_now(site: Site = Depends(owned_site), db: AsyncSession = Depends(get_session)):
-    queued = await jobs.enqueue(db, "audit", {"site_id": site.id, "trigger": "manual"})
-    await jobs.enqueue(db, "links", {"site_id": site.id})
-    return {"queued": queued is not None}
+async def audit_now(
+    body: AuditNowIn | None = None,
+    idempotency_key: str | None = Header(default=None, max_length=64),
+    site: Site = Depends(owned_site),
+    db: AsyncSession = Depends(get_session),
+):
+    """Full audit (1 credit) or deep audit (3 credits, Business and Scale). Charged when the report is stored;
+    refunded automatically if no report comes out. A repeated Idempotency-Key is never charged twice."""
+    deep = bool(body and body.deep)
+    plan_id = await effective_plan(db, site.owner_id)
+    if deep and not ENTITLEMENTS[plan_id].deep_audit:
+        raise HTTPException(403, "Deep audits (up to 500 pages) are part of Business and Scale.")
+    kind = "deep_audit" if deep else "audit"
+    key = f"manual:{site.owner_id}:{idempotency_key}" if idempotency_key else f"manual:{site.id}:{secrets.token_hex(8)}"
+    try:
+        return await _queue_paid_audit(db, site, kind, key, "manual")
+    except credits.InsufficientCredits as exc:
+        await db.rollback()
+        raise HTTPException(402, f"{exc} Upgrade or buy a credit pack in Billing; light checks are still free.") from None
+
+
+@router.post("/api/sites/{site_id}/check", status_code=202)
+async def check_now(site: Site = Depends(owned_site), db: AsyncSession = Depends(get_session)):
+    """Light check (SEO, AEO and GEO rules; no credits), within the plan's daily allowance."""
+    job, reason = await jobs.enqueue_check(db, site, "manual")
+    if reason == "daily_limit":
+        raise HTTPException(429, "You've used today's light checks. They reset at midnight UTC.")
+    return {"queued": job is not None}
 
 
 # ---------- Before-and-After Verification ----------
@@ -166,9 +225,12 @@ async def verify_issue(issue_id: int, site: Site = Depends(owned_site), db: Asyn
     db.add(v)
     await db.commit()
     await db.refresh(v)  # requested_at comes from the database default
-    # one job per site: a pending verify job picks up every queued verification when it runs
-    await jobs.enqueue(db, "verify", {"site_id": site.id})
-    return _verification_out(v, issue)
+    out = _verification_out(v, issue)
+    # a free light recheck settles SEO/AEO/GEO fixes; Speed and Accessibility wait for the next full audit.
+    # Over the daily light-check allowance it simply stays queued until the next check or audit.
+    if issue.module in LIGHT_MODULES:
+        await jobs.enqueue_check(db, site, "verify", kind="verify")
+    return out
 
 
 @router.get("/api/sites/{site_id}/verifications", response_model=list[VerificationOut])
@@ -223,9 +285,25 @@ async def deploy_hook(token: str, db: AsyncSession = Depends(get_session)):
     site = await db.scalar(select(Site).where(Site.deploy_token == token)) if len(token) >= 20 else None
     if not site:
         raise HTTPException(404, "Unknown deploy hook.")
-    queued = await jobs.enqueue(db, "audit", {"site_id": site.id, "trigger": "deploy"})
-    await jobs.enqueue(db, "links", {"site_id": site.id})
-    return {"queued": queued is not None, "site": site.domain}
+    site_id, domain = site.id, site.domain
+    # CI can call this on every push: at most one deploy audit per site per hour, so a busy pipeline can't drain credits
+    since = datetime.now(timezone.utc) - DEPLOY_COOLDOWN
+    recent = await db.scalar(
+        select(Job.id).where(Job.payload["site_id"].as_integer() == site_id, Job.payload["trigger"].as_string() == "deploy", Job.created_at > since).limit(1)
+    )
+    if recent:
+        return {"queued": False, "reason": "cooldown", "site": domain}
+    try:
+        result = await _queue_paid_audit(db, site, "audit", f"deploy:{site_id}:{secrets.token_hex(8)}", "deploy")
+        return {**result, "audit": "full", "site": domain}
+    except credits.InsufficientCredits:
+        await db.rollback()
+    site = await db.get(Site, site_id, populate_existing=True)
+    job, reason = await jobs.enqueue_check(db, site, "deploy")
+    if job:
+        db.add(Alert(site_id=site_id, kind="credits", message="A deploy ran a light check instead of a full audit: no audit credits left."))
+        await db.commit()
+    return {"queued": job is not None, "audit": "light", "reason": reason, "site": domain}
 
 
 # ---------- alerts inbox ----------

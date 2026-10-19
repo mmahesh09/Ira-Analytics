@@ -1,20 +1,24 @@
 import asyncio
+import hashlib
 import json
 import re
 import logging
-import time
-from collections import defaultdict, deque
 from contextlib import asynccontextmanager, suppress
+from datetime import datetime, timezone
 
-from fastapi import FastAPI, HTTPException, Query, Request
+from fastapi import Depends, FastAPI, HTTPException, Query, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import Response, StreamingResponse
 
-from sqlalchemy import text
+from sqlalchemy import func, select, text
+from sqlalchemy.dialects.postgresql import insert as pg_insert
+from sqlalchemy.ext.asyncio import AsyncSession
 
 from .config import settings
-from .db import engine
+from .credits import lock_user
+from .db import engine, get_session
 from .models import AuditRequest
+from .schema import PreviewUsage
 from .routers import auth, billing, content, monitoring, sites
 from .runner import run_audit
 from .storage import load_shot
@@ -50,24 +54,38 @@ app.include_router(billing.router)
 app.include_router(monitoring.router)
 app.include_router(content.router)
 
-_hits: dict[str, deque[float]] = defaultdict(deque)
-WINDOW = 600
-
-
 def _client_ip(request: Request) -> str:
-    forwarded = request.headers.get("x-forwarded-for")
-    return forwarded.split(",")[0].strip() if forwarded else (request.client.host if request.client else "unknown")
+    """The caller's IP. X-Forwarded-For is client-controlled except for the entries our own proxies append,
+    so only the entry added by the outermost of TRUSTED_PROXY_HOPS proxies is trusted (Render: 1)."""
+    hops = settings.trusted_proxy_hops
+    forwarded = [part.strip() for part in request.headers.get("x-forwarded-for", "").split(",") if part.strip()]
+    if hops > 0 and len(forwarded) >= hops:
+        return forwarded[-hops]
+    return request.client.host if request.client else "unknown"
 
 
-def _allow(request: Request) -> bool:
-    hits = _hits[_client_ip(request)]
-    now = time.time()
-    while hits and now - hits[0] > WINDOW:
-        hits.popleft()
-    if len(hits) >= settings.rate_limit_per_10min:
-        return False
-    hits.append(now)
-    return True
+async def _take_preview(db: AsyncSession, request: Request) -> str | None:
+    """Counts one anonymous preview; returns the reason it's refused, or None. Stored in Postgres, so the
+    limit survives restarts and holds across instances; IPs are kept only as salted hashes."""
+    today = datetime.now(timezone.utc).date()
+    ip_hash = hashlib.sha256(f"{settings.preview_salt}|{_client_ip(request)}".encode()).hexdigest()
+    await lock_user(db, "all", "preview")  # makes the global daily cap exact
+    if (await db.scalar(select(func.coalesce(func.sum(PreviewUsage.count), 0)).where(PreviewUsage.day == today))) >= settings.preview_daily_cap:
+        await db.rollback()
+        return "Free previews are busy today. Create a free account for your monthly full audit."
+    taken = await db.scalar(
+        pg_insert(PreviewUsage).values(ip_hash=ip_hash, day=today, count=1)
+        .on_conflict_do_update(
+            index_elements=["ip_hash", "day"], set_={"count": PreviewUsage.count + 1},
+            where=PreviewUsage.count < settings.preview_per_ip_per_day,
+        )
+        .returning(PreviewUsage.count)
+    )
+    if taken is None:
+        await db.rollback()
+        return "You've used today's free previews. Create a free account for a full audit every month."
+    await db.commit()
+    return None
 
 
 def _sse(event: dict) -> str:
@@ -106,14 +124,15 @@ async def health():
 
 
 @app.get("/api/audit/stream")
-async def audit_stream(request: Request, url: str = Query(min_length=3, max_length=2048)):
-    allowed = _allow(request)
+async def audit_stream(request: Request, url: str = Query(min_length=3, max_length=2048), db: AsyncSession = Depends(get_session)):
+    """Anonymous preview: a light check (no Speed, browser, traffic or AI probes), not saved, a few per day."""
+    refused = await _take_preview(db, request)
 
     async def events():
-        if not allowed:
-            yield _sse({"type": "error", "message": "You've run a lot of audits. Please wait a few minutes and try again."})
+        if refused:
+            yield _sse({"type": "error", "message": refused})
             return
-        async for event in run_audit(url):
+        async for event in run_audit(url, mode="light"):
             if await request.is_disconnected():
                 return
             yield _sse(event)
@@ -122,10 +141,10 @@ async def audit_stream(request: Request, url: str = Query(min_length=3, max_leng
 
 
 @app.post("/api/audit")
-async def audit(body: AuditRequest, request: Request):
-    if not _allow(request):
-        raise HTTPException(429, "Too many audits. Try again in a few minutes.")
-    async for event in run_audit(body.url):
+async def audit(body: AuditRequest, request: Request, db: AsyncSession = Depends(get_session)):
+    if refused := await _take_preview(db, request):
+        raise HTTPException(429, refused)
+    async for event in run_audit(body.url, mode="light"):
         if event["type"] == "error":
             raise HTTPException(422, event["message"])
         if event["type"] == "result":

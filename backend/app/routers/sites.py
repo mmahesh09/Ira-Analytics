@@ -10,6 +10,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from ..auth import current_user, owned_site
 from ..config import settings
+from ..credits import lock_user
 from ..db import get_session
 from ..plans import ENTITLEMENTS, effective_plan
 from ..schema import Site, User
@@ -27,7 +28,8 @@ class SiteIn(BaseModel):
 class SitePatch(BaseModel):
     name: str | None = Field(default=None, max_length=120)
     timezone: str | None = Field(default=None, max_length=64)
-    audit_cadence: Cadence | None = None
+    audit_cadence: Cadence | None = None  # light checks; never more often than the plan allows
+    auto_full_audit: bool | None = None  # one full audit a month, paid with a credit
 
 
 class SiteOut(BaseModel):
@@ -36,6 +38,7 @@ class SiteOut(BaseModel):
     name: str
     timezone: str
     audit_cadence: str
+    auto_full_audit: bool
     tracking_key: str
     snippet: str
     created_at: datetime
@@ -59,6 +62,7 @@ def _out(site: Site) -> SiteOut:
         name=site.name,
         timezone=site.timezone,
         audit_cadence=site.audit_cadence,
+        auto_full_audit=site.auto_full_audit,
         tracking_key=site.tracking_key,
         snippet=snippet,
         created_at=site.created_at,
@@ -74,6 +78,8 @@ async def list_sites(user: User = Depends(current_user), db: AsyncSession = Depe
 @router.post("", response_model=SiteOut, status_code=201)
 async def create_site(body: SiteIn, user: User = Depends(current_user), db: AsyncSession = Depends(get_session)):
     domain = clean_domain(body.domain)
+    # serialise this user's concurrent creates so the count below can't be raced past the plan limit
+    await lock_user(db, user.id, "sites")
     if await db.scalar(select(Site.id).where(Site.owner_id == user.id, Site.domain == domain)):
         raise HTTPException(409, f"You're already tracking {domain}.")
     plan = await effective_plan(db, user.id)

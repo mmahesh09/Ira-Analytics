@@ -1,4 +1,3 @@
-<<<<<<< HEAD
 # Rankwise — SEO, AEO & GEO website audit
 
 Paste a URL, get scores for classic search (SEO), answer engines (AEO) and AI assistants (GEO), plus Core Web Vitals and optional traffic estimates — with a ranked fix list.
@@ -54,8 +53,4 @@ Outbound fetches reject private/loopback/reserved IPs on every redirect hop, cap
 
 ## Not built yet
 
-Postgres/Supabase persistence and audit history, user accounts, multi-page crawling, PDF export, Google Search Console / GA4 connection for real (not estimated) traffic.
-=======
-# Ira-Analytics
-**Ira Analytics** is an AI-powered SEO and web analytics platform that helps businesses track search rankings, analyze website traffic, uncover growth opportunities, and improve online visibility with data-driven insights.
->>>>>>> e1533da2293e931180a73cd08989f109cb12d4b7
+Google Search Console / GA4 connection for real (not estimated) traffic, competitor comparison, chat over your site data, PDF and white-label reports. See `frontend/src/lib/features.ts` (features marked `soon`).

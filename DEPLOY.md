@@ -1,11 +1,64 @@
 # Deploying Rankwise
 
-Two free options. Both use the same Docker image (`backend/Dockerfile`), so moving later is painless.
+Three free options. Both use the same Docker image (`backend/Dockerfile`), so moving later is painless.
 
 - **Render (free) + Neon**: the quickest. Below.
 - **Oracle Cloud Free VM + Coolify**: fully open source, more power (Chromium checks on). Further down.
 
 Never paste passwords or keys into chat or commit them: they go only into Render's, Neon's and Vercel's settings screens.
+
+---
+
+## Hugging Face Spaces + Neon (free, no credit card) - recommended
+
+Free CPU Space: 2 vCPU and 16 GB RAM, so every module works, including Speed (local Lighthouse),
+Accessibility and Visual Doctor. It sleeps after about 48 hours without visits (step 6 keeps it awake).
+The `backend/` folder is the Space: its `README.md` declares `sdk: docker` and `app_port: 8000`.
+
+### 1. Database: Neon (free, no card)
+<https://neon.tech> -> sign in with GitHub -> new project `rankwise`, region **AWS US East** (closest to
+Hugging Face). Copy the connection string `postgresql://...neon.tech/neondb?sslmode=require`.
+
+### 2. Create the sign-in tables (once, from this PC)
+```powershell
+cd frontend
+$env:DATABASE_URL = Read-Host "Neon connection string" -MaskInput
+npx -y auth@1.7.10 migrate --config src/lib/auth.ts --yes
+Remove-Item Env:DATABASE_URL
+```
+
+### 3. Hugging Face account and token (free, no card)
+Sign up at <https://huggingface.co/join>, then **Settings -> Access Tokens -> Create new token**, type **Write**.
+Log in on this PC (the token is typed into a hidden prompt, never into chat):
+```powershell
+uvx --from huggingface_hub hf auth login
+```
+
+### 4. Create the Space and upload the backend
+```powershell
+uvx --from huggingface_hub hf repos create rankwise-api --repo-type space --space-sdk docker
+uvx --from huggingface_hub hf upload <your-username>/rankwise-api backend . --repo-type space --exclude ".venv/*" "data/*" "tests/*" "**/__pycache__/*" ".env"
+```
+The Space builds the Docker image (about 5 minutes the first time).
+
+### 5. Space settings -> Variables and secrets
+| Kind | Name | Value |
+|---|---|---|
+| Secret | `DATABASE_URL` | the Neon connection string |
+| Secret | `OPENROUTER_API_KEY` | from <https://openrouter.ai/keys> (AI features; optional) |
+| Secret | `PAGESPEED_API_KEY` | optional (local Lighthouse is used otherwise) |
+| Variable | `EMBEDDED_WORKER` | `true` (scheduled audits run inside the API) |
+| Variable | `CORS_ORIGINS` | `https://rankwise-xi.vercel.app,https://rankwise.rudrai-gowri.workers.dev` |
+| Variable | `PUBLIC_API_URL` | `https://<your-username>-rankwise-api.hf.space` |
+
+Then **Restart** the Space. Check `https://<your-username>-rankwise-api.hf.space/api/health`.
+
+### 6. Keep it awake
+<https://cron-job.org> -> new job -> `https://<your-username>-rankwise-api.hf.space/api/health` every 30 minutes.
+
+### 7. Frontend (Vercel, and Cloudflare if used)
+Set `DATABASE_URL` (Neon), `BETTER_AUTH_SECRET` (32+ random characters), `BETTER_AUTH_URL` (the site URL),
+`BACKEND_URL` and `NEXT_PUBLIC_API_URL` (the Space URL), then redeploy so the new values are built in.
 
 ---
 

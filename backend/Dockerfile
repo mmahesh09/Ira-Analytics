@@ -41,7 +41,7 @@ RUN pip install --no-cache-dir -r requirements.txt
 
 COPY . .
 RUN chmod +x docker-entrypoint.sh \
-    && useradd --create-home --uid 10001 rankwise \
+    && useradd --create-home --uid 1000 rankwise \
     && mkdir -p data/shots && chown -R rankwise:rankwise /app/data
 USER rankwise
 

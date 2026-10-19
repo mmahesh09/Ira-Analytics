@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { ArrowUp } from "lucide-react";
+import { COMPANY, LEGAL_LINKS } from "@/lib/company";
 import { Logo } from "./site-header";
 
 const NAV = [
@@ -27,6 +28,7 @@ const NAV = [
       ["Create an account", "/signup"],
     ],
   },
+  { title: "Legal", links: LEGAL_LINKS },
 ] as const;
 
 /** Quiet footer: brand + three link groups, clearly separated from the page (item 60). No competing CTA. */
@@ -42,7 +44,7 @@ export function SiteFooter() {
             SEO, answer-engine and AI-search readiness audits with every fix ranked and the code to ship it.
           </p>
         </div>
-        <nav aria-label="Footer" className="grid grid-cols-2 gap-8 sm:grid-cols-3">
+        <nav aria-label="Footer" className="grid grid-cols-2 gap-8 sm:grid-cols-4">
           {NAV.map((group) => (
             <div key={group.title}>
               <h2 className="font-sub text-[14px] font-medium text-ink">{group.title}</h2>
@@ -62,7 +64,9 @@ export function SiteFooter() {
 
       <div className="border-t border-line">
         <div className="mx-auto flex max-w-[1200px] flex-col gap-3 px-4 py-6 font-sub text-[13px] text-ink-3 sm:flex-row sm:items-center sm:justify-between sm:px-6">
-          <p>© Rankwise. Data from Google PageSpeed Insights, DataForSEO and OpenRouter models; AI answers vary between runs.</p>
+          <p>
+            © {COMPANY.legalUpdated.slice(-4)} {COMPANY.name}, {COMPANY.city}, {COMPANY.country}. Speed data from Google PageSpeed Insights.
+          </p>
           <a href="#main" className="-mx-2 inline-flex min-h-10 shrink-0 items-center gap-1.5 self-start rounded-md px-2 transition-colors duration-200 hover:text-ink sm:self-auto">
             Back to top <ArrowUp aria-hidden="true" className="size-3.5" />
           </a>

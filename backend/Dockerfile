@@ -10,7 +10,7 @@ ARG WITH_BROWSER=true
 FROM node:22-bookworm-slim AS lighthouse
 RUN npm install -g lighthouse@13.5.0 && npm cache clean --force
 
-FROM python:3.13-slim-bookworm AS base
+FROM python:3.15-slim-bookworm AS base
 RUN apt-get update \
     && apt-get install -y --no-install-recommends ca-certificates tini \
     && rm -rf /var/lib/apt/lists/*

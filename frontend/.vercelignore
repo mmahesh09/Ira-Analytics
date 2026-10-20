@@ -1,0 +1,8 @@
+# never upload local secrets or build output with `vercel deploy`
+.env*
+!.env.example
+.next
+.open-next
+.claude
+node_modules
+e2e

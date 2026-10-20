@@ -1,0 +1,9 @@
+# gitleaks reads this from the repo root (CI: .github/workflows/ci.yml, "Secret scan").
+[extend]
+useDefault = true
+
+[allowlist]
+description = "Generated files with no secrets"
+# graphify's file-stat cache: paths like "api-design..." next to 19-digit mtimes trip generic-api-key.
+# It holds only sizes, timestamps and word counts, and is no longer committed (.gitignore), but stays in history.
+paths = ['''graphify-out/cache/''']

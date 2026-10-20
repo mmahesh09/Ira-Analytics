@@ -63,6 +63,8 @@ jobs:
           cache: npm
           cache-dependency-path: frontend/package-lock.json
       - run: npm ci
+      # generates next-env.d.ts and the route types (LayoutProps, PageProps) that tsc needs; both are gitignored
+      - run: npx next typegen
       - run: npx tsc --noEmit
       - run: npm run lint
       - run: npm run build

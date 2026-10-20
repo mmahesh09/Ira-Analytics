@@ -1,0 +1,8 @@
+# Blocks commits that contain secrets (API keys, connection strings, private keys) before they reach git history.
+#   pip install pre-commit && pre-commit install
+# CI runs the same scanner over the full history (.github/workflows/ci.yml → security).
+repos:
+  - repo: https://github.com/gitleaks/gitleaks
+    rev: v8.30.1
+    hooks:
+      - id: gitleaks

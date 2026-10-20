@@ -415,6 +415,20 @@ async def razorpay_webhook(request: Request, db: AsyncSession = Depends(get_sess
         elif not order:
             log.warning("order.paid for unknown order %s", order_entity["id"])
 
+    if kind == "refund.processed":
+        refund_entity = (payload.get("refund") or {}).get("entity") or {}
+        payment_id = pay_entity.get("id") or refund_entity.get("payment_id")
+        row = await db.get(Payment, payment_id, with_for_update=True) if payment_id else None
+        if row is None:
+            log.warning("refund for unknown payment %s", payment_id)
+        else:
+            # amount_refunded is the running total across partial refunds; a bare refund entity only has its own amount
+            refunded = int(pay_entity.get("amount_refunded") or refund_entity.get("amount") or 0)
+            full = refunded >= row.amount
+            row.status = "refunded" if full else "partial_refund"
+            if full and row.kind == "pack":
+                await credits.revoke_pack(db, row.user_id, row.id)
+
     if kind == "payment.failed" and pay_entity.get("id"):
         order = await db.scalar(select(CreditOrder).where(CreditOrder.id == pay_entity.get("order_id"))) if pay_entity.get("order_id") else None
         user_id = order.user_id if order else (pay_entity.get("notes") or {}).get("user_id")

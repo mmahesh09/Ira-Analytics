@@ -85,6 +85,8 @@ def parse_page(url: str, html: str) -> Page:
         if href.startswith(("#", "mailto:", "tel:", "javascript:")):
             continue
         absolute = urljoin(url, href).split("#")[0]
+        if urlparse(absolute).scheme not in ("http", "https"):  # "JavaScript:…", "data:…" and the like
+            continue
         link_host = urlparse(absolute).hostname or ""
         if link_host.removeprefix("www.") == host.removeprefix("www."):
             internal.append(absolute)

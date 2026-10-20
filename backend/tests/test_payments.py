@@ -186,3 +186,22 @@ async def test_credit_packs_are_server_priced_owned_and_granted_once(db, monkeyp
     assert state["credits"]["pack"] == 5 and (await credits.balance(db, buyer)).pack == 5
     assert [(p["kind"], p["amount"], p["status"]) for p in history] == [("pack", 119900, "captured")]
     assert (await db.get(CreditOrder, "order_1", populate_existing=True)).status == "paid"
+
+
+async def test_refund_marks_payment_and_takes_back_an_unused_pack_once(db):
+    user = await make_user(db)
+    await credits.grant(db, user, "pack", 5, "pack:pay_r", expires_at=NOW + timedelta(days=365), payment_id="pay_r")
+    db.add(Payment(id="pay_r", user_id=user, kind="pack", amount=119900, currency="inr", status="captured", paid_at=NOW))
+    await db.commit()
+    pay = {"id": "pay_r", "status": "captured", "amount": 119900, "currency": "INR"}
+    async with client() as c:
+        await hook(c, "refund.processed", "evt_rf1", refund={"id": "rfnd_1", "payment_id": "pay_r", "amount": 50000}, payment={**pay, "amount_refunded": 50000})
+        partial = (await db.get(Payment, "pay_r", populate_existing=True)).status
+        assert (await credits.balance(db, user)).pack == 5  # a partial refund (e.g. a goodwill credit) keeps the pack
+        await hook(c, "refund.processed", "evt_rf2", refund={"id": "rfnd_2", "payment_id": "pay_r", "amount": 69900},
+                   payment={**pay, "status": "refunded", "amount_refunded": 119900})
+        await hook(c, "refund.processed", "evt_rf3", refund={"id": "rfnd_x", "payment_id": "pay_unknown", "amount": 100})
+    assert partial == "partial_refund"
+    assert (await db.get(Payment, "pay_r", populate_existing=True)).status == "refunded"
+    assert (await credits.balance(db, user)).pack == 0
+    assert await credits.revoke_pack(db, user, "pay_r") == 0  # repeat is a no-op

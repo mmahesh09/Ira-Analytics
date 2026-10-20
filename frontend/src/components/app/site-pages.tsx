@@ -10,6 +10,9 @@ import { EFFORT_LABEL } from "@/lib/scoring";
 import type { AuditPoint, IssueRow, Site, SiteStatus } from "@/lib/types";
 import { HealthStats, HistoryChart, byPriority, useApi } from "./monitoring";
 import { Loading, NotFound, PageHeader, useSite, useWorkspace } from "./workspace";
+import posthog from "posthog-js";
+
+const posthogEnabled = Boolean(process.env.NEXT_PUBLIC_POSTHOG_KEY && process.env.NEXT_PUBLIC_POSTHOG_HOST);
 
 const input =
   "h-10 w-full rounded-lg border border-white/[0.1] bg-white/[0.03] px-3 font-sub text-[14px] text-ink outline-none transition-[border-color,box-shadow] duration-200 placeholder:text-ink-3 focus-visible:border-white/25 focus-visible:shadow-[0_0_0_4px_rgb(255_255_255/0.05)] focus-visible:outline-none";
@@ -30,6 +33,7 @@ function AddSiteForm({ onDone }: { onDone?: () => void }) {
     setError(null);
     try {
       const site = await apiFetch<Site>("/sites", { body: { domain: form.get("domain"), name: form.get("name") } });
+      if (posthogEnabled) posthog.capture("site_added");
       await reload();
       onDone?.();
       router.push(`/app/${site.id}`);
@@ -322,6 +326,7 @@ export function SiteSettings() {
     setStatus("Saving…");
     try {
       await apiFetch(`/sites/${site.id}`, { method: "PATCH", body: { name: form.get("name"), audit_cadence: current, auto_full_audit: monthlyAudit } });
+      if (posthogEnabled) posthog.capture("site_settings_saved", { audit_cadence: current, monthly_full_audit: monthlyAudit });
       await reload();
       setStatus("Saved");
     } catch (err) {
@@ -332,6 +337,7 @@ export function SiteSettings() {
   async function remove() {
     if (!site || !window.confirm(`Delete ${site.domain} and all of its data? This can't be undone.`)) return;
     await apiFetch(`/sites/${site.id}`, { method: "DELETE" });
+    if (posthogEnabled) posthog.capture("site_deleted");
     await reload();
     router.replace("/app");
   }

@@ -52,8 +52,9 @@ function Tile({ feature, visual, big = false }: { feature: Feature; visual?: Rea
   const Icon = feature.icon;
   return (
     <article
-      className={`panel group flex h-full flex-col overflow-hidden rounded-[20px] transition-[border-color] duration-200 hover:border-white/[0.16] ${big ? "p-8 sm:p-10" : "p-7"}`}
+      className={`group relative isolate flex h-full flex-col overflow-hidden bg-paper transition-colors duration-200 hover:bg-[#0c0c0f] ${big ? "p-8 sm:p-10" : "p-7"}`}
     >
+      {big && <div aria-hidden="true" className="top-light pointer-events-none absolute inset-0 -z-10" />}
       <div className="flex items-start justify-between gap-4">
         <span className="grid size-10 place-items-center rounded-xl border border-cobalt/20 bg-cobalt-soft">
           <Icon aria-hidden="true" className="size-5 text-cobalt" />
@@ -67,11 +68,14 @@ function Tile({ feature, visual, big = false }: { feature: Feature; visual?: Rea
   );
 }
 
-/** First feature large with its visual, the rest as a varied grid. Never three equal cards. */
+/**
+ * Bento (Tailark "bento-2" layout, rebuilt on Rankwise tokens): one framed grid whose cells share hairline borders.
+ * First feature large with its visual, the rest as a varied grid. Never three equal cards.
+ */
 export function FeatureBento({ features, visuals }: { features: Feature[]; visuals: Record<string, ReactNode> }) {
   const [lead, ...rest] = features;
   return (
-    <div className="grid gap-4 lg:grid-cols-6">
+    <div className="grid gap-px overflow-hidden rounded-[24px] border border-line bg-line lg:grid-cols-6">
       <Reveal className="lg:col-span-4">
         <Tile feature={lead} visual={visuals[lead.slug]} big />
       </Reveal>

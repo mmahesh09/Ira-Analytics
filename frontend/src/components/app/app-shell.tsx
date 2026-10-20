@@ -3,13 +3,16 @@
 import { useCallback, useEffect, useState, type ReactNode } from "react";
 import Link from "next/link";
 import { useParams, usePathname, useRouter } from "next/navigation";
-import { Activity, CircleAlert, CreditCard, LayoutGrid, LogOut, Menu, Plus, Settings, Unlink, X } from "lucide-react";
+import { Activity, CircleAlert, CreditCard, Inbox, LayoutGrid, Menu, MessageSquare, Plus, Settings, ShieldCheck, Unlink, X } from "lucide-react";
 import { AlertsBell } from "./monitoring";
+import { CommandPalette } from "./command-palette";
+import ProfileDropdown, { type ProfileMenuItem } from "@/components/kokonutui/profile-dropdown";
 import { WorkspaceContext } from "./workspace";
 import { Logo } from "@/components/site-header";
 import { apiFetch } from "@/lib/api";
 import { authClient } from "@/lib/auth-client";
 import type { Site, User } from "@/lib/types";
+import posthog from "posthog-js";
 
 /** Tabs for the selected site. Later phases append Traffic, Search, Audits, AI visibility and Competitors. */
 const SITE_NAV = [
@@ -19,6 +22,12 @@ const SITE_NAV = [
   { href: "/links", label: "Broken links", icon: Unlink },
   { href: "/settings", label: "Settings", icon: Settings },
 ];
+
+const posthogEnabled = Boolean(process.env.NEXT_PUBLIC_POSTHOG_KEY && process.env.NEXT_PUBLIC_POSTHOG_HOST);
+
+function identifyUser(user: User) {
+  if (posthogEnabled) posthog.identify(user.id, { email: user.email, name: user.name });
+}
 
 function SiteMark({ site, active }: { site: Site; active?: boolean }) {
   return (
@@ -38,7 +47,8 @@ function Sidebar({ user, sites, onNavigate }: { user: User | null; sites: Site[]
   const active = sites?.find((s) => String(s.id) === siteId);
 
   async function logout() {
-    await authClient.signOut().catch(() => {});
+    const { error } = await authClient.signOut().catch(() => ({ error: true }));
+    if (!error && posthogEnabled) posthog.reset();
     router.replace("/login");
     router.refresh();
   }
@@ -48,11 +58,43 @@ function Sidebar({ user, sites, onNavigate }: { user: User | null; sites: Site[]
   const on = "bg-cobalt-soft text-ink before:absolute before:inset-y-2 before:-left-3 before:w-[3px] before:rounded-r before:bg-cobalt";
   const off = "text-ink-2 hover:bg-white/[0.04] hover:text-ink";
 
+  const go = (href: string) => () => {
+    onNavigate();
+    router.push(href);
+  };
+  const menu: ProfileMenuItem[] = [
+    { label: "Billing", icon: <CreditCard className="size-4" />, onSelect: go("/app/billing") },
+    { label: "Account & security", icon: <ShieldCheck className="size-4" />, onSelect: go("/app/account") },
+    { label: "Send feedback", icon: <MessageSquare className="size-4" />, onSelect: go("/feedback") },
+    ...(user?.is_admin ? [{ label: "Feedback (admin)", icon: <Inbox className="size-4" />, onSelect: go("/app/admin/feedback") }] : []),
+  ];
+
   return (
-    <nav aria-label="Workspace" className="flex h-full flex-col gap-7 p-3">
-      <Link href="/app" onClick={onNavigate} className="flex h-10 items-center rounded-md px-2.5">
-        <Logo />
-      </Link>
+    <nav aria-label="Workspace" className="flex h-full flex-col gap-6 p-3">
+      <div className="flex items-center justify-between">
+        <Link href="/app" onClick={onNavigate} className="flex h-10 items-center rounded-md px-2.5">
+          <Logo />
+        </Link>
+        <AlertsBell />
+      </div>
+
+      <div className="space-y-2.5">
+        {user ? (
+          <ProfileDropdown
+            key={user.id}
+            accounts={[{ id: user.id, name: user.name || user.email, email: user.email }]}
+            items={menu}
+            align="left"
+            showStatus={false}
+            showTheme={false}
+            onSignOut={logout}
+            className="block w-full"
+          />
+        ) : (
+          <div className="h-[50px] animate-pulse rounded-2xl bg-white/[0.04]" />
+        )}
+        <CommandPalette user={user} sites={sites} onNavigate={onNavigate} />
+      </div>
 
       <div>
         <p className="eyebrow px-2.5 text-[10.5px]">Sites</p>
@@ -104,27 +146,35 @@ function Sidebar({ user, sites, onNavigate }: { user: User | null; sites: Site[]
       )}
 
       <div className="mt-auto border-t border-line pt-3">
-        <div className="flex items-center gap-2.5 px-1.5">
-          <span aria-hidden="true" className="grid size-8 shrink-0 place-items-center rounded-full bg-cobalt-fill font-sub text-[13px] font-medium uppercase text-white">
-            {(user?.name || user?.email || "?")[0]}
-          </span>
-          <span className="min-w-0 flex-1">
-            <span className="block truncate font-sub text-[13px] text-ink">{user?.name || user?.email || " "}</span>
-            {user?.name && <span className="block truncate font-sub text-[11.5px] text-ink-3">{user.email}</span>}
-          </span>
-          <AlertsBell />
-        </div>
         <Link
           href="/app/billing"
           onClick={onNavigate}
           aria-current={pathname === "/app/billing" ? "page" : undefined}
-          className={`${item} mt-3 ${pathname === "/app/billing" ? on : off}`}
+          className={`${item} ${pathname === "/app/billing" ? on : off}`}
         >
           <CreditCard aria-hidden="true" className="size-4" /> Billing
         </Link>
-        <button type="button" onClick={logout} className={`${item} w-full cursor-pointer ${off}`}>
-          <LogOut aria-hidden="true" className="size-4" /> Log out
-        </button>
+        <Link
+          href="/app/account"
+          onClick={onNavigate}
+          aria-current={pathname === "/app/account" ? "page" : undefined}
+          className={`${item} ${pathname === "/app/account" ? on : off}`}
+        >
+          <ShieldCheck aria-hidden="true" className="size-4" /> Account &amp; security
+        </Link>
+        {user?.is_admin && (
+          <Link
+            href="/app/admin/feedback"
+            onClick={onNavigate}
+            aria-current={pathname === "/app/admin/feedback" ? "page" : undefined}
+            className={`${item} ${pathname === "/app/admin/feedback" ? on : off}`}
+          >
+            <Inbox aria-hidden="true" className="size-4" /> Feedback (admin)
+          </Link>
+        )}
+        <Link href="/feedback" onClick={onNavigate} className={`${item} ${off}`}>
+          <MessageSquare aria-hidden="true" className="size-4" /> Send feedback
+        </Link>
       </div>
     </nav>
   );
@@ -137,6 +187,7 @@ export function AppShell({ children }: { children: ReactNode }) {
 
   const reload = useCallback(async () => {
     const [me, list] = await Promise.all([apiFetch<User>("/me"), apiFetch<Site[]>("/sites")]);
+    identifyUser(me);
     setUser(me);
     setSites(list);
   }, []);
@@ -146,6 +197,7 @@ export function AppShell({ children }: { children: ReactNode }) {
     Promise.all([apiFetch<User>("/me"), apiFetch<Site[]>("/sites")])
       .then(([me, list]) => {
         if (!live) return;
+        identifyUser(me);
         setUser(me);
         setSites(list);
       })

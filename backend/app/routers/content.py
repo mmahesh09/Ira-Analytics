@@ -13,6 +13,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from ..auth import current_user, owned_site
 from ..config import settings
+from ..credits import lock_user
 from ..db import get_session
 from ..fetcher import AuditError, fetch, make_client, normalize_url
 from ..llm import chat, first_json_object
@@ -131,11 +132,6 @@ async def rewrite(
     if not settings.openrouter_api_key:
         raise HTTPException(503, "AI rewrites aren't switched on for this server yet.")
 
-    limit = ENTITLEMENTS[await effective_plan(db, user.id)].ai_rewrites
-    used = await db.scalar(select(func.count()).select_from(AiRewrite).where(AiRewrite.user_id == user.id, AiRewrite.created_at >= _month_start())) or 0
-    if used >= limit:
-        raise HTTPException(429, f"You've used all {limit} AI rewrites for this month. Upgrade for more, or wait until the 1st.")
-
     try:
         url = normalize_url(body.url or site.domain)
     except AuditError as exc:
@@ -144,6 +140,27 @@ async def rewrite(
     if host != site.domain.removeprefix("www."):
         raise HTTPException(422, f"Pick a page on {site.domain}.")
 
+    # take this month's slot before the slow fetch and model call, under a per-user lock, so parallel requests
+    # can't all pass the count and overspend the allowance; a failed rewrite gives the slot back
+    site_id, user_id = site.id, user.id
+    await lock_user(db, user_id, "rewrite")
+    limit = ENTITLEMENTS[await effective_plan(db, user_id)].ai_rewrites
+    used = await db.scalar(select(func.count()).select_from(AiRewrite).where(AiRewrite.user_id == user_id, AiRewrite.created_at >= _month_start())) or 0
+    if used >= limit:
+        await db.rollback()
+        raise HTTPException(429, f"You've used all {limit} AI rewrites for this month. Upgrade for more, or wait until the 1st.")
+    slot = AiRewrite(user_id=user_id, site_id=site_id, field=body.field)
+    db.add(slot)
+    await db.commit()
+    try:
+        return await _rewrite(url, body.field, used, limit)
+    except HTTPException:
+        await db.delete(slot)
+        await db.commit()
+        raise
+
+
+async def _rewrite(url: str, field: str, used: int, limit: int) -> RewriteOut:
     async with make_client() as client:
         try:
             fetched = await fetch(client, url)
@@ -152,21 +169,17 @@ async def rewrite(
     if fetched.status >= 400:
         raise HTTPException(422, f"The page returned HTTP {fetched.status}.")
     page = parse_page(fetched.final_url, fetched.text)
-    current, question = _current(page, body.field)
+    current, question = _current(page, field)
 
     try:
         async with httpx.AsyncClient() as client:
-            reply = await chat(client, settings.content_model, _prompt(page, body.field, current, question), max_tokens=700, system=SYSTEM)
-        options = _options(first_json_object(reply["text"]), body.field)
+            reply = await chat(client, settings.content_model, _prompt(page, field, current, question), max_tokens=700, system=SYSTEM)
+        options = _options(first_json_object(reply["text"]), field)
     except (httpx.HTTPError, KeyError, ValueError, json.JSONDecodeError) as exc:
         raise HTTPException(502, "The AI model didn't return usable suggestions. Try again in a moment.") from exc
     if not options:
         raise HTTPException(502, "The AI model didn't return usable suggestions. Try again in a moment.")
-
-    # only successful rewrites count against the monthly allowance
-    db.add(AiRewrite(user_id=user.id, site_id=site.id, field=body.field))
-    await db.commit()
     return RewriteOut(
-        field=body.field, url=page.url, current=current, question=question, ideal=FIELDS[body.field]["ideal"],
+        field=field, url=page.url, current=current, question=question, ideal=FIELDS[field]["ideal"],
         options=options, used=used + 1, limit=limit,
     )

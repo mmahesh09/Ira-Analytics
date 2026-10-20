@@ -19,6 +19,7 @@ import { CheckItem, CheckList } from "./check-list";
 import { AeoExtras, GeoExtras, PerformanceExtras, SeoExtras, TrafficPanel } from "./module-panels";
 import { VisualDoctor } from "./visual-doctor";
 import { ScoreBreakdown } from "./score-breakdown";
+import BackgroundPaths from "@/components/kokonutui/background-paths";
 
 type Tab = "overview" | ModuleKey;
 // The public audit is a free preview (a light check on the server): SEO, AEO and GEO rules only. Speed,
@@ -103,14 +104,22 @@ function AuditRun({ url, onRerun }: { url: string; onRerun: () => void }) {
 
   return (
     <MotionConfig reducedMotion="user">
-      <div className="mx-auto grid w-full max-w-[1200px] grid-cols-[minmax(0,1fr)] gap-8 px-4 pb-24 pt-8 sm:px-6 lg:grid-cols-[300px_minmax(0,1fr)] lg:gap-10">
-        <Sidebar host={host} url={report?.final_url ?? url} report={report} modules={modules} running={running} elapsed={elapsed} tab={tab} setTab={setTab} onRerun={onRerun} />
-        <div className="min-w-0">
-          {report ? (
-            <ReportPanel report={report} host={host} tab={tab} setTab={setTab} />
-          ) : (
-            <ProgressLog fetchDone={fetchDone} modules={modules} elapsed={elapsed} />
-          )}
+      <div className="relative isolate">
+        {/* decorative: flowing purple paths behind the top of the report */}
+        <div aria-hidden="true" className="pointer-events-none absolute inset-x-0 top-0 -z-10 h-[680px] overflow-hidden">
+          <BackgroundPaths className="h-full min-h-0 bg-transparent text-cobalt/60 dark:bg-transparent dark:text-cobalt/60" count={36} speed={0.6} interactive={false}>
+            {null}
+          </BackgroundPaths>
+        </div>
+        <div className="mx-auto grid w-full max-w-[1200px] grid-cols-[minmax(0,1fr)] gap-8 px-4 pb-24 pt-8 sm:px-6 lg:grid-cols-[300px_minmax(0,1fr)] lg:gap-10">
+          <Sidebar host={host} url={report?.final_url ?? url} report={report} modules={modules} running={running} elapsed={elapsed} tab={tab} setTab={setTab} onRerun={onRerun} />
+          <div className="min-w-0">
+            {report ? (
+              <ReportPanel report={report} host={host} tab={tab} setTab={setTab} />
+            ) : (
+              <ProgressLog fetchDone={fetchDone} modules={modules} elapsed={elapsed} />
+            )}
+          </div>
         </div>
       </div>
     </MotionConfig>

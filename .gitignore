@@ -20,6 +20,9 @@ out/
 next-env.d.ts
 .vercel/
 
+# graphify's local caches (the graph itself, graph.json, stays committed)
+graphify-out/cache/
+
 # runtime data (Visual Doctor screenshots)
 backend/data/
 

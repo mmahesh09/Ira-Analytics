@@ -1,0 +1,28 @@
+{
+  "name": "rankwise-video",
+  "private": true,
+  "description": "Rankwise 30-second launch video (Remotion)",
+  "scripts": {
+    "studio": "remotion studio",
+    "sfx": "node scripts/make-sfx.mjs",
+    "fx": "cd fx && npx --yes hyperframes@0.8.179 render -c compositions/grain.html -o ../public/fx/grain.mp4 && npx --yes hyperframes@0.8.179 render -o ../public/fx/atmos.mp4",
+    "render:film": "remotion render RankwiseFilm out/rankwise-film.mp4",
+    "render": "remotion render RankwiseLaunch out/rankwise-launch.mp4",
+    "render:audio": "remotion render RankwiseLaunch out/rankwise-launch.mp4 --props=audio-props.json",
+    "typecheck": "tsc"
+  },
+  "dependencies": {
+    "@remotion/cli": "4.0.537",
+    "@remotion/google-fonts": "4.0.537",
+    "@remotion/media": "4.0.537",
+    "@remotion/transitions": "4.0.537",
+    "lucide-react": "0.468.0",
+    "react": "^19.3.1",
+    "react-dom": "^19.3.1",
+    "remotion": "4.0.537"
+  },
+  "devDependencies": {
+    "@types/react": "^19.3.0",
+    "typescript": "^7.0.2"
+  }
+}

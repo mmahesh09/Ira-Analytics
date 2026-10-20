@@ -22,7 +22,7 @@ from sqlalchemy import text  # noqa: E402
 from sqlalchemy.ext.asyncio import async_sessionmaker, create_async_engine  # noqa: E402
 
 from app.config import async_db_url  # noqa: E402
-TABLES = "credit_ledger, credit_reservations, credit_grants, credit_orders, payments, preview_usage, jobs, audits, sites, subscriptions, billing_events"
+TABLES = "feedback, api_rate, credit_ledger, credit_reservations, credit_grants, credit_orders, payments, preview_usage, jobs, audits, sites, subscriptions, billing_events"
 
 
 @pytest_asyncio.fixture

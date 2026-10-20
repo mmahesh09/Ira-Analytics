@@ -20,11 +20,16 @@ if config.config_file_name is not None:
 # for 'autogenerate' support
 # from myapp import mymodel
 # target_metadata = mymodel.Base.metadata
-from app.config import settings  # noqa: E402
+import os  # noqa: E402
+
+from app.config import async_db_url, settings  # noqa: E402
 from app.schema import BETTER_AUTH_TABLES, Base  # noqa: E402
 
+# migrations change the schema, so they may use their own, more privileged role (MIGRATION_DATABASE_URL, e.g. the
+# Neon owner) while the app runs as a DML-only role (docs/db-roles.sql); without it they use DATABASE_URL.
 # "%" (URL-encoded password characters) must be doubled for alembic's config parser
-config.set_main_option("sqlalchemy.url", settings.database_url.replace("%", "%%"))
+url = async_db_url(os.environ["MIGRATION_DATABASE_URL"]) if os.getenv("MIGRATION_DATABASE_URL") else settings.database_url
+config.set_main_option("sqlalchemy.url", url.replace("%", "%%"))
 target_metadata = Base.metadata
 
 

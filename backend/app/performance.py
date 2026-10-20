@@ -13,6 +13,7 @@ import shutil
 import httpx
 
 from .config import settings
+from .egress import EgressProxy
 from .models import Check, ModuleResult
 
 PSI_URL = "https://www.googleapis.com/pagespeedonline/v5/runPagespeed"
@@ -60,10 +61,14 @@ async def run_local_lighthouse(url: str) -> dict | None:
     cli, browser = shutil.which("lighthouse"), _browser_path()
     if not (settings.local_lighthouse and cli and browser):
         return None
-    async with _local_slot:
+    # the audited page decides what Chrome loads, so its only way out is the egress proxy (private networks refused)
+    async with _local_slot, EgressProxy() as proxy:
+        flags = ["--headless=new", "--no-first-run", "--disable-extensions", *proxy.chrome_flags()]
+        if settings.chrome_no_sandbox:
+            flags += ["--no-sandbox", "--disable-dev-shm-usage"]
         proc = await asyncio.create_subprocess_exec(
             cli, url, "--only-categories=performance", "--form-factor=mobile", "--output=json", "--output-path=stdout", "--quiet",
-            "--chrome-flags=--headless=new --no-first-run --disable-extensions" + (" --no-sandbox --disable-dev-shm-usage" if settings.chrome_no_sandbox else ""),
+            f"--chrome-flags={' '.join(flags)}",
             stdout=asyncio.subprocess.PIPE, stderr=asyncio.subprocess.DEVNULL,
             env={**os.environ, "CHROME_PATH": browser},
         )

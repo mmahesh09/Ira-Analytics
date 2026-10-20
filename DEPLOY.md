@@ -98,7 +98,7 @@ Render reads `render.yaml` and asks for three values: `DATABASE_URL` (the Neon s
 `OPENROUTER_API_KEY`. Click **Apply**. The first build takes a few minutes; on start the container runs
 `alembic upgrade head`, which creates the rest of the tables.
 
-Check: <https://rankwise-api.onrender.com/api/health> should report the database as ok.
+Check: <https://ira-analytics.onrender.com/api/health> should report the database as ok.
 (If Render gave the service a different URL, update `PUBLIC_API_URL` in its Environment tab.)
 
 ### 5. Vercel (Project → Settings → Environment Variables → Production), then Redeploy
@@ -108,11 +108,11 @@ Check: <https://rankwise-api.onrender.com/api/health> should report the database
 | `DATABASE_URL` | the same Neon connection string |
 | `BETTER_AUTH_SECRET` | a new random secret (`openssl rand -base64 32`, or any 32+ random characters) |
 | `BETTER_AUTH_URL` | `https://rankwise-xi.vercel.app` |
-| `BACKEND_URL` | `https://rankwise-api.onrender.com` |
-| `NEXT_PUBLIC_API_URL` | `https://rankwise-api.onrender.com` |
+| `BACKEND_URL` | `https://ira-analytics.onrender.com` |
+| `NEXT_PUBLIC_API_URL` | `https://ira-analytics.onrender.com` |
 
 ### 6. Keep it awake (free)
-<https://cron-job.org> → new cron job → URL `https://rankwise-api.onrender.com/api/health`, every **10 minutes**.
+<https://cron-job.org> → new cron job → URL `https://ira-analytics.onrender.com/api/health`, every **10 minutes**.
 One always-on free service fits in Render's 750 free hours a month.
 
 ### 7. Check
@@ -238,3 +238,42 @@ docker compose --profile bundled-db up -d --build
 - Database: a free Postgres at <https://neon.tech> (SSL included).
 - Backend: a **Docker** Space built from `backend/Dockerfile`, with the same variables as step 4 and `PORT=7860`.
   Free Spaces sleep when idle and have no separate worker, so scheduled monitoring only runs while it's awake.
+
+---
+
+## Product feedback (every host)
+
+The public form lives at `/feedback`; answers are stored in the `feedback` table (migration `0004_feedback`, applied by
+`alembic upgrade head` on deploy like the others). Only admins can read them, at `/app/admin/feedback`.
+
+1. On the backend host, set `ADMIN_EMAILS` to a comma-separated list of admin emails (e.g. `you@example.com`).
+   Nothing to set on Vercel.
+2. The admin must sign in with that email **and** have it verified (the email link from sign-up). Without an email
+   provider, verify it once in Neon's SQL editor: `UPDATE "user" SET "emailVerified" = true WHERE email = 'you@example.com';`
+3. Optional: `FEEDBACK_PER_IP_PER_10MIN` (default 5) limits submissions per visitor.
+
+Everyone else, signed in or not, gets 404 from the admin API. Feedback can't be edited or deleted through the API.
+
+### Feedback to Google Sheets (optional)
+
+Every submission is also appended to a Google Sheet, one row each, a few seconds after it is sent. Postgres stays the
+source of truth: if Google is unreachable, or the sheet isn't set up yet, the worker retries every 5 minutes and backfills
+every older submission, so nothing is lost and no row is sent twice.
+
+1. Create a Google Sheet (any name). Copy its ID from the URL: `docs.google.com/spreadsheets/d/<THIS PART>/edit`.
+   Rename the first tab to `Feedback` (or set `GOOGLE_SHEETS_TAB` to its name).
+2. In [Google Cloud console](https://console.cloud.google.com): create a project (free), open
+   **APIs & Services → Library**, enable **Google Sheets API**.
+3. **IAM & Admin → Service accounts → Create service account** (no roles needed). Open it, **Keys → Add key → JSON**.
+   A key file downloads. Keep it private; never commit it.
+4. In the sheet, **Share** it with the service account's email (`…@….iam.gserviceaccount.com`) as **Editor**.
+5. On the backend host set:
+   - `GOOGLE_SHEETS_ID` = the ID from step 1
+   - `GOOGLE_SERVICE_ACCOUNT_JSON` = the whole key file. If the host mangles multi-line values, paste it base64-encoded
+     instead (PowerShell: `[Convert]::ToBase64String([IO.File]::ReadAllBytes("key.json"))`).
+6. Redeploy. Migration `0005_feedback_sheet_sync` runs with the others. The header row is written on the first sync,
+   and existing feedback is backfilled within 5 minutes.
+
+The sheet gets names and emails when people choose to give them, so treat it like the database: share it only with the
+team, and list Google as a processor in the privacy policy. To open it in Excel: **File → Download → Microsoft Excel**.
+

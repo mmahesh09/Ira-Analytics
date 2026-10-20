@@ -1,0 +1,21 @@
+{
+  "1": "Monitoring API Routes",
+  "2": "Deployment & Hosting Docs",
+  "8": "Fix Snippet Generators",
+  "9": "AI Fixes & Prioritization",
+  "10": "Root Layout & Feature Demos",
+  "13": "Frontend Tooling Config",
+  "18": "Issue Diffs & Regressions",
+  "20": "shadcn Components Config",
+  "21": "Frontend Dependencies",
+  "29": "TypeScript Config",
+  "34": "App Shell & Nav",
+  "44": "Dev Dependencies",
+  "46": "NPM Scripts",
+  "48": "Next.js Starter Assets",
+  "53": "Docker Entrypoint",
+  "54": "graphify Rules",
+  "55": "Dotted World Map",
+  "56": "boto3 Dependency",
+  "57": "DB Setup Script"
+}

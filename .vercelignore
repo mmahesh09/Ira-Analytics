@@ -1,0 +1,11 @@
+# `vercel deploy` runs from the repo root (Root Directory = frontend): upload only the frontend source,
+# never local secrets, build output, the backend or media files
+/*
+!/frontend
+/frontend/.env*
+!/frontend/.env.example
+/frontend/.next
+/frontend/.open-next
+/frontend/.claude
+/frontend/node_modules
+/frontend/e2e

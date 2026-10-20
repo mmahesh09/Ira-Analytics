@@ -3,7 +3,7 @@
 # on first creation (sync: false) and never live in git. See DEPLOY.md → "Render (free)".
 services:
   - type: web
-    name: rankwise-api
+    name: rankwise-api # the live service was created by hand as ira-analytics (https://ira-analytics.onrender.com)
     runtime: docker
     rootDir: backend
     dockerfilePath: ./backend/Dockerfile
@@ -21,16 +21,24 @@ services:
         value: "false"
       - key: ROLE
         value: api
+      - key: APP_ENV # fail closed on unsafe settings, hide /docs, HSTS on API responses
+        value: production
       - key: EMBEDDED_WORKER # no separate worker on the free tier: run scheduled audits inside the API
         value: "true"
       - key: TRUSTED_PROXY_HOPS # Render's proxy appends the real client IP to X-Forwarded-For (anonymous preview limits)
         value: "1"
       - key: PREVIEW_SALT # hashes visitor IPs in preview_usage
         generateValue: true
+      - key: ADMIN_EMAILS # who may read /app/admin/feedback (verified email required)
+        sync: false
+      - key: GOOGLE_SHEETS_ID # feedback copy to Google Sheets (DEPLOY.md); optional
+        sync: false
+      - key: GOOGLE_SERVICE_ACCOUNT_JSON
+        sync: false
       - key: CORS_ORIGINS
         value: https://rankwise-xi.vercel.app
       - key: PUBLIC_API_URL
-        value: https://rankwise-api.onrender.com
+        value: https://ira-analytics.onrender.com
       - key: DATABASE_URL # Neon connection string (postgresql://…?sslmode=require)
         sync: false
       - key: PAGESPEED_API_KEY # Speed scores on the free tier come from PageSpeed Insights

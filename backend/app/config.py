@@ -27,13 +27,29 @@ def async_db_url(raw: str) -> str:
     return urlunsplit(("postgresql+asyncpg", parts.netloc, parts.path, urlencode(query), parts.fragment))
 
 
+def _production() -> bool:
+    return os.getenv("APP_ENV", "development").lower() == "production"
+
+
 @dataclass(frozen=True)
 class Settings:
+    # "production" makes startup fail closed on missing or unsafe settings (problems()), hides the API docs and
+    # drops development defaults such as the localhost CORS origin
+    app_env: str = os.getenv("APP_ENV", "development").lower()
     # browsers call the API directly only for the audit stream. The production frontend is always allowed, so a
     # leftover CORS_ORIGINS (e.g. localhost copied from .env.example) can't lock the live site out; CORS_ORIGINS adds to it.
+    # The same list is trusted as Origin for cookie-authenticated writes (security.OriginCheck).
     cors_origins: list[str] = field(
-        default_factory=lambda: list(dict.fromkeys([*_list("CORS_ORIGINS", "http://localhost:3000"), *_list("FRONTEND_ORIGIN", "https://rankwise-xi.vercel.app")]))
+        default_factory=lambda: list(dict.fromkeys([
+            *_list("CORS_ORIGINS", "" if _production() else "http://localhost:3000"),
+            *_list("FRONTEND_ORIGIN", "https://rankwise-xi.vercel.app"),
+        ]))
     )
+    # per signed-in user per minute: all requests, and the state-changing ones (POST/PATCH/PUT/DELETE)
+    user_rate_per_min: int = int(os.getenv("USER_RATE_PER_MIN", "300"))
+    user_write_rate_per_min: int = int(os.getenv("USER_WRITE_RATE_PER_MIN", "60"))
+    # request bodies are small JSON documents; anything bigger is refused before it is read
+    max_body_bytes: int = int(os.getenv("MAX_BODY_BYTES", str(256 * 1024)))
     pagespeed_api_key: str = os.getenv("PAGESPEED_API_KEY", "")
     openrouter_api_key: str = os.getenv("OPENROUTER_API_KEY", "")
     geo_models: list[str] = field(default_factory=lambda: _list("GEO_MODELS", "perplexity/sonar,openai/gpt-4o-mini"))
@@ -45,7 +61,18 @@ class Settings:
     # anonymous preview audits (light checks, not saved), counted in Postgres per hashed IP per UTC day
     preview_per_ip_per_day: int = int(os.getenv("PREVIEW_PER_IP_PER_DAY", "2"))
     preview_daily_cap: int = int(os.getenv("PREVIEW_DAILY_CAP", "200"))
+    # signed-in users get their own daily allowance, keyed on the account and outside the anonymous cap
+    preview_per_user_per_day: int = int(os.getenv("PREVIEW_PER_USER_PER_DAY", "10"))
     preview_salt: str = os.getenv("PREVIEW_SALT", "")
+    # accounts that may read product feedback (/api/admin/feedback); the account's email must also be verified
+    admin_emails: frozenset[str] = field(default_factory=lambda: frozenset(e.lower() for e in _list("ADMIN_EMAILS", "")))
+    # public feedback form submissions per hashed IP per 10 minutes
+    feedback_per_ip_per_10min: int = int(os.getenv("FEEDBACK_PER_IP_PER_10MIN", "5"))
+    # copy each feedback submission into a Google Sheet (app/sheets.py); off while either is empty.
+    # GOOGLE_SERVICE_ACCOUNT_JSON: the service account key file, as raw JSON or base64
+    google_sheets_id: str = os.getenv("GOOGLE_SHEETS_ID", "")
+    google_sheets_tab: str = os.getenv("GOOGLE_SHEETS_TAB", "Feedback")
+    google_service_account: str = os.getenv("GOOGLE_SERVICE_ACCOUNT_JSON", "")
     # proxies in front of the API that append to X-Forwarded-For (Render: 1). 0 = ignore the header entirely
     trusted_proxy_hops: int = int(os.getenv("TRUSTED_PROXY_HOPS", "0"))
 
@@ -80,6 +107,29 @@ class Settings:
     request_timeout: float = 15.0
     max_redirects: int = 5
     max_link_checks: int = 25
+
+    @property
+    def production(self) -> bool:
+        return self.app_env == "production"
+
+    def problems(self) -> list[str]:
+        """Settings that make a production deploy unsafe. Empty outside production."""
+        if not self.production:
+            return []
+        found = []
+        if "@localhost" in self.database_url or "@127.0.0.1" in self.database_url:
+            found.append("DATABASE_URL is not set (still the local default)")
+        if len(self.preview_salt) < 16:
+            found.append("PREVIEW_SALT must be a random string of at least 16 characters (visitor IPs are hashed with it)")
+        if not self.public_api_url.startswith("https://"):
+            found.append("PUBLIC_API_URL must be the public https:// URL of this API")
+        if any(not o.startswith("https://") for o in self.cors_origins):
+            found.append("CORS_ORIGINS / FRONTEND_ORIGIN may only list https:// origins in production")
+        if self.razorpay_key_secret and not self.razorpay_webhook_secret:
+            found.append("RAZORPAY_WEBHOOK_SECRET is required when Razorpay keys are set (payments would never confirm)")
+        if self.trusted_proxy_hops < 1:
+            found.append("TRUSTED_PROXY_HOPS must be at least 1 behind a proxy (preview and API limits key on the client IP)")
+        return found
 
 
 settings = Settings()

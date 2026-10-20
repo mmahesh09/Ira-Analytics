@@ -2,9 +2,10 @@ import secrets
 from datetime import datetime
 from typing import Literal
 from urllib.parse import urlparse
+from zoneinfo import available_timezones
 
 from fastapi import APIRouter, Depends, HTTPException
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, field_validator
 from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -30,6 +31,13 @@ class SitePatch(BaseModel):
     timezone: str | None = Field(default=None, max_length=64)
     audit_cadence: Cadence | None = None  # light checks; never more often than the plan allows
     auto_full_audit: bool | None = None  # one full audit a month, paid with a credit
+
+    @field_validator("timezone")
+    @classmethod
+    def known_timezone(cls, value: str | None) -> str | None:
+        if value is not None and value.strip() not in available_timezones():
+            raise ValueError("Pick a timezone from the list, like Asia/Kolkata or UTC.")
+        return value
 
 
 class SiteOut(BaseModel):

@@ -1,0 +1,202 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=1920, height=1080" />
+    <title>Rankwise atmosphere plate</title>
+    <script src="https://cdn.jsdelivr.net/npm/gsap@3.14.2/dist/gsap.min.js"></script>
+    <!--
+      Light-only plate for the Remotion film (video/src). Pure black background so Remotion can
+      composite it with mix-blend-mode: screen. Timing mirrors the film: drop at 8.0 s,
+      dashboard 11.87 s, finale darkness 23.48 s, end 30 s.
+    -->
+    <style>
+      * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+      }
+      html,
+      body {
+        width: 1920px;
+        height: 1080px;
+        overflow: hidden;
+        background: #000;
+      }
+      #root {
+        position: relative;
+        width: 100%;
+        height: 100%;
+        overflow: hidden;
+        background: #000;
+      }
+      .layer {
+        position: absolute;
+        inset: 0;
+        pointer-events: none;
+      }
+      .blob {
+        position: absolute;
+        border-radius: 50%;
+        filter: blur(90px);
+      }
+      #blob-a {
+        left: 260px;
+        top: 120px;
+        width: 900px;
+        height: 620px;
+        background: radial-gradient(closest-side, rgba(147, 51, 234, 0.55), rgba(88, 28, 135, 0.18) 60%, transparent);
+      }
+      #blob-b {
+        left: 980px;
+        top: 420px;
+        width: 760px;
+        height: 560px;
+        background: radial-gradient(closest-side, rgba(126, 34, 206, 0.45), rgba(59, 7, 100, 0.15) 60%, transparent);
+      }
+      #blob-c {
+        left: 640px;
+        top: 700px;
+        width: 700px;
+        height: 380px;
+        background: radial-gradient(closest-side, rgba(191, 90, 242, 0.28), transparent);
+      }
+      /* opening beam: thin bright core + wide volumetric falloff, tilted slightly */
+      #beam-open {
+        position: absolute;
+        left: -10%;
+        top: 520px;
+        width: 120%;
+        height: 40px;
+        rotate: -4deg;
+      }
+      #beam-open .core {
+        position: absolute;
+        left: 0;
+        right: 0;
+        top: 19px;
+        height: 2px;
+        background: linear-gradient(90deg, transparent, #f3e8ff 45%, #ffffff 50%, #f3e8ff 55%, transparent);
+        box-shadow: 0 0 12px 2px rgba(191, 90, 242, 0.9), 0 0 40px 8px rgba(147, 51, 234, 0.55);
+      }
+      #beam-open .halo {
+        position: absolute;
+        left: 0;
+        right: 0;
+        top: -160px;
+        height: 360px;
+        background: linear-gradient(180deg, transparent, rgba(147, 51, 234, 0.32) 50%, transparent);
+        filter: blur(40px);
+      }
+      /* broad diagonal shafts for the drop and the finale */
+      .shaft {
+        position: absolute;
+        top: -400px;
+        width: 520px;
+        height: 1900px;
+        rotate: 18deg;
+        background: linear-gradient(90deg, transparent, rgba(167, 85, 247, 0.22) 35%, rgba(233, 213, 255, 0.5) 50%, rgba(167, 85, 247, 0.22) 65%, transparent);
+        filter: blur(36px);
+      }
+      /* top light cone over the dashboard (rim / volumetric key) */
+      #cone {
+        position: absolute;
+        left: 460px;
+        top: -200px;
+        width: 1000px;
+        height: 1100px;
+        clip-path: polygon(42% 0, 58% 0, 100% 100%, 0 100%);
+        background: linear-gradient(180deg, rgba(216, 180, 254, 0.42), rgba(147, 51, 234, 0.12) 55%, transparent 85%);
+        filter: blur(30px);
+      }
+    </style>
+  </head>
+  <body>
+    <div id="root" data-composition-id="main" data-start="0" data-duration="30" data-width="1920" data-height="1080">
+      <div id="haze" class="layer clip" data-start="0" data-duration="30" data-track-index="0">
+        <div id="haze-inner" class="layer">
+          <div id="blob-a" class="blob"></div>
+          <div id="blob-b" class="blob"></div>
+          <div id="blob-c" class="blob"></div>
+        </div>
+      </div>
+
+      <div id="cone-clip" class="layer clip" data-start="11.4" data-duration="6.6" data-track-index="1">
+        <div id="cone"></div>
+      </div>
+
+      <div id="particles" class="layer clip" data-start="0" data-duration="30" data-track-index="2">
+        <div id="particles-inner" class="layer">
+          <div
+            data-composition-id="starfield"
+            data-composition-src="compositions/starfield.html"
+            data-start="0"
+            data-duration="30"
+            data-width="1920"
+            data-height="1080"
+            data-variables='{"density":"sparse","tone":"white","speed":"slow"}'
+          ></div>
+        </div>
+      </div>
+
+      <div id="beam-open-clip" class="layer clip" data-start="0.3" data-duration="2.6" data-track-index="3">
+        <div id="beam-open">
+          <div class="halo"></div>
+          <div class="core"></div>
+        </div>
+      </div>
+
+      <div id="shaft-drop-clip" class="layer clip" data-start="7.9" data-duration="1.4" data-track-index="4">
+        <div id="shaft-drop" class="shaft"></div>
+      </div>
+
+      <div id="shaft-final-clip" class="layer clip" data-start="24.6" data-duration="2.4" data-track-index="5">
+        <div id="shaft-final" class="shaft"></div>
+      </div>
+    </div>
+
+    <script>
+      const tl = gsap.timeline({ paused: true });
+
+      // Haze: darkness → slow bloom → flare on the drop → hold → near-dark for the finale → gentle return → out.
+      tl.fromTo("#haze-inner", { opacity: 0 }, { opacity: 0.35, duration: 3.2, ease: "power1.inOut" }, 0.8)
+        .to("#haze-inner", { opacity: 0.55, duration: 3.6, ease: "power1.in" }, 4.0)
+        .to("#haze-inner", { opacity: 1, duration: 0.12, ease: "power2.out" }, 8.0)
+        .to("#haze-inner", { opacity: 0.6, duration: 1.6, ease: "power2.out" }, 8.12)
+        .to("#haze-inner", { opacity: 0.08, duration: 0.25, ease: "power2.in" }, 23.35)
+        .to("#haze-inner", { opacity: 0.45, duration: 2.5, ease: "power1.inOut" }, 24.4)
+        .to("#haze-inner", { opacity: 0, duration: 0.6, ease: "power1.in" }, 29.4);
+      // slow drift so the haze never feels static
+      tl.fromTo("#blob-a", { x: -60, y: 0 }, { x: 120, y: 40, duration: 30, ease: "none" }, 0)
+        .fromTo("#blob-b", { x: 80, y: 20 }, { x: -140, y: -30, duration: 30, ease: "none" }, 0)
+        .fromTo("#blob-c", { x: 0, y: 0 }, { x: 60, y: -50, duration: 30, ease: "none" }, 0);
+
+      // Particles emerge behind the opening beam, dip for the finale darkness, then return softly.
+      tl.fromTo("#particles-inner", { opacity: 0 }, { opacity: 0.55, duration: 2.4, ease: "power1.out" }, 0.9)
+        .to("#particles-inner", { opacity: 0.8, duration: 0.3 }, 8.0)
+        .to("#particles-inner", { opacity: 0.1, duration: 0.3 }, 23.35)
+        .to("#particles-inner", { opacity: 0.45, duration: 2.0 }, 24.6)
+        .to("#particles-inner", { opacity: 0, duration: 0.6 }, 29.4);
+
+      // Opening beam sweeps left → right as a traveling highlight, then fades.
+      tl.fromTo("#beam-open", { xPercent: -95, opacity: 0 }, { xPercent: 0, opacity: 1, duration: 1.3, ease: "power2.out" }, 0.3)
+        .to("#beam-open", { xPercent: 95, duration: 1.2, ease: "power2.in" }, 1.6)
+        .to("#beam-open", { opacity: 0, duration: 0.5, ease: "power1.in" }, 2.35);
+
+      // Drop shaft: fast diagonal pass right over the logo reveal.
+      tl.fromTo("#shaft-drop", { x: -700, opacity: 0 }, { x: 760, opacity: 1, duration: 0.6, ease: "power2.out" }, 7.95)
+        .to("#shaft-drop", { x: 2300, opacity: 0, duration: 0.7, ease: "power2.in" }, 8.55);
+
+      // Dashboard cone breathes slowly.
+      tl.fromTo("#cone", { opacity: 0 }, { opacity: 0.9, duration: 0.8, ease: "power2.out" }, 11.4)
+        .to("#cone", { opacity: 0.6, duration: 4.6, ease: "sine.inOut" }, 12.2)
+        .to("#cone", { opacity: 0, duration: 0.6, ease: "power1.in" }, 17.4);
+
+      // Finale shaft: slow, refined pass for the closing logo.
+      tl.fromTo("#shaft-final", { x: -700, opacity: 0 }, { x: 700, opacity: 0.8, duration: 1.2, ease: "power2.out" }, 24.6)
+        .to("#shaft-final", { x: 2300, opacity: 0, duration: 1.2, ease: "power2.in" }, 25.8);
+
+      window.__timelines["main"] = tl;
+    </script>
+  </body>
+</html>

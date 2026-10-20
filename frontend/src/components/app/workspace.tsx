@@ -3,6 +3,7 @@
 import { createContext, useContext, type ReactNode } from "react";
 import Link from "next/link";
 import { useParams } from "next/navigation";
+import Loader from "@/components/kokonutui/loader";
 import type { Site, User } from "@/lib/types";
 
 /** Shared by the app shell and every site page; kept apart so those modules don't import each other. */
@@ -35,8 +36,8 @@ export function PageHeader({ title, subtitle, actions, eyebrow }: { title: strin
   );
 }
 
-export function Loading() {
-  return <div className="m-10 h-40 animate-pulse rounded-xl bg-white/[0.03]" />;
+export function Loading({ title = "Loading your workspace", subtitle = "" }: { title?: string; subtitle?: string }) {
+  return <Loader size="sm" title={title} subtitle={subtitle} className="min-h-[50vh]" />;
 }
 
 export function NotFound() {

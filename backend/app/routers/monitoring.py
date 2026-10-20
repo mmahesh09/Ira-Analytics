@@ -4,12 +4,12 @@ import secrets
 from datetime import datetime, timedelta, timezone
 from typing import Literal
 
-from fastapi import APIRouter, Depends, Header, HTTPException
+from fastapi import APIRouter, Depends, Header, HTTPException, Query, Request
 from pydantic import BaseModel
 from sqlalchemy import func, select, update
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from .. import credits, jobs
+from .. import credits, jobs, ratelimit
 from ..auth import current_user, owned_site
 from ..config import settings
 from ..priority import CONFIDENCE, DEFAULT_CONFIDENCE, DEFAULT_EFFORT, EFFORT
@@ -83,11 +83,11 @@ HISTORY_KINDS = {"full": ("full", "deep"), "check": ("check",), "all": ("full", 
 
 
 @router.get("/api/sites/{site_id}/history", response_model=list[AuditPoint])
-async def history(site: Site = Depends(owned_site), db: AsyncSession = Depends(get_session), limit: int = 90,
+async def history(site: Site = Depends(owned_site), db: AsyncSession = Depends(get_session), limit: int = Query(90, ge=1, le=365),
                   kind: Literal["full", "check", "all"] = "full"):
     """Score history. Full audits by default: light checks have no Speed and a differently weighted overall."""
     rows = await db.scalars(
-        select(Audit).where(Audit.site_id == site.id, Audit.kind.in_(HISTORY_KINDS[kind])).order_by(Audit.created_at.desc()).limit(min(limit, 365))
+        select(Audit).where(Audit.site_id == site.id, Audit.kind.in_(HISTORY_KINDS[kind])).order_by(Audit.created_at.desc()).limit(limit)
     )
     return [
         AuditPoint(id=a.id, created_at=a.created_at, trigger=a.trigger, kind=a.kind, overall=a.overall_score, seo=a.seo, aeo=a.aeo, geo=a.geo, speed=a.speed)
@@ -280,8 +280,9 @@ async def delete_deploy_hook(site: Site = Depends(owned_site), db: AsyncSession 
 
 
 @router.post("/api/hooks/deploy/{token}", status_code=202, include_in_schema=False)
-async def deploy_hook(token: str, db: AsyncSession = Depends(get_session)):
+async def deploy_hook(token: str, request: Request, db: AsyncSession = Depends(get_session)):
     """Called by CI/CD after a release (no login: the token in the URL is the secret)."""
+    await ratelimit.hit(ratelimit.ip_key("deploy-hook", ratelimit.client_ip(request)), 30)  # slows token guessing
     site = await db.scalar(select(Site).where(Site.deploy_token == token)) if len(token) >= 20 else None
     if not site:
         raise HTTPException(404, "Unknown deploy hook.")

@@ -12,8 +12,9 @@ export default function AuthLayout({ children }: LayoutProps<"/">) {
             <Logo />
           </Link>
         </header>
-        <main id="main" className="flex flex-1 items-center py-12">
-          <div className="mx-auto w-full max-w-[400px]">{children}</div>
+        <main id="main" className="relative flex flex-1 items-center py-12">
+          <div aria-hidden="true" className="grid-bg pointer-events-none absolute inset-0 opacity-60" />
+          <div className="relative mx-auto w-full max-w-[420px]">{children}</div>
         </main>
         <footer className="flex h-16 items-center justify-between font-sub text-[12.5px] text-ink-3">
           <span>© Rankwise</span>

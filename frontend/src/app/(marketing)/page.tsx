@@ -23,6 +23,7 @@ import { AuditConsole } from "@/components/marketing/audit-console";
 import { HeroStats } from "@/components/marketing/hero-stats";
 import { FeaturesOverview } from "@/components/marketing/features-overview";
 import { FeedbackBand } from "@/components/marketing/feedback-band";
+import { HeroVideoDialog } from "@/components/ui/hero-video-dialog";
 import { byChapter } from "@/lib/features";
 
 const ENGINES = ["Google", "ChatGPT", "Claude", "Perplexity", "Gemini", "Bing", "Copilot"];
@@ -121,6 +122,18 @@ export default function Home() {
 
         {/* stats band: only numbers we can stand behind (item 9) */}
         <HeroStats engines={ENGINES} />
+
+        {/* 30-second launch film; the mp4 only loads once the dialog opens */}
+        <div className="relative mx-auto max-w-[960px] px-4 pb-20 pt-4 sm:px-6 lg:pb-24">
+          <Reveal>
+            <HeroVideoDialog
+              animationStyle="from-center"
+              videoSrc="/videos/rankwise-launch.mp4"
+              thumbnailSrc="/videos/rankwise-launch-poster.webp"
+              thumbnailAlt="Rankwise launch video: Google isn't the only one reading your site anymore"
+            />
+          </Reveal>
+        </div>
       </section>
 
       {/* PRODUCT: the full report, as one calm visual */}

@@ -7,7 +7,7 @@
 ARG WITH_BROWSER=true
 
 # Lighthouse needs a recent Node; take both from the official image (only built when the browser is included)
-FROM node:22-bookworm-slim AS lighthouse
+FROM node:26-bookworm-slim AS lighthouse
 RUN npm install -g lighthouse@13.5.0 && npm cache clean --force
 
 FROM python:3.13-slim-bookworm AS base

@@ -254,3 +254,26 @@ The public form lives at `/feedback`; answers are stored in the `feedback` table
 
 Everyone else, signed in or not, gets 404 from the admin API. Feedback can't be edited or deleted through the API.
 
+### Feedback to Google Sheets (optional)
+
+Every submission is also appended to a Google Sheet, one row each, a few seconds after it is sent. Postgres stays the
+source of truth: if Google is unreachable, or the sheet isn't set up yet, the worker retries every 5 minutes and backfills
+every older submission, so nothing is lost and no row is sent twice.
+
+1. Create a Google Sheet (any name). Copy its ID from the URL: `docs.google.com/spreadsheets/d/<THIS PART>/edit`.
+   Rename the first tab to `Feedback` (or set `GOOGLE_SHEETS_TAB` to its name).
+2. In [Google Cloud console](https://console.cloud.google.com): create a project (free), open
+   **APIs & Services → Library**, enable **Google Sheets API**.
+3. **IAM & Admin → Service accounts → Create service account** (no roles needed). Open it, **Keys → Add key → JSON**.
+   A key file downloads. Keep it private; never commit it.
+4. In the sheet, **Share** it with the service account's email (`…@….iam.gserviceaccount.com`) as **Editor**.
+5. On the backend host set:
+   - `GOOGLE_SHEETS_ID` = the ID from step 1
+   - `GOOGLE_SERVICE_ACCOUNT_JSON` = the whole key file. If the host mangles multi-line values, paste it base64-encoded
+     instead (PowerShell: `[Convert]::ToBase64String([IO.File]::ReadAllBytes("key.json"))`).
+6. Redeploy. Migration `0005_feedback_sheet_sync` runs with the others. The header row is written on the first sync,
+   and existing feedback is backfilled within 5 minutes.
+
+The sheet gets names and emails when people choose to give them, so treat it like the database: share it only with the
+team, and list Google as a processor in the privacy policy. To open it in Excel: **File → Download → Microsoft Excel**.
+

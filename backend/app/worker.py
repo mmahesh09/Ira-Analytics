@@ -14,6 +14,7 @@ from . import credits, jobs
 from .db import SessionLocal
 from .monitoring import next_run
 from .plans import ENTITLEMENTS, effective_plan
+from . import sheets
 from .retention import prune_old_data
 from .schema import Alert, Audit, Site
 
@@ -22,6 +23,7 @@ SCHEDULE_EVERY = 60  # seconds
 IDLE_SLEEP = 5
 AUTO_FULL_EVERY = timedelta(days=28)
 PRUNE_EVERY = 24 * 60 * 60  # seconds; also runs once at start-up
+SHEETS_EVERY = 5 * 60  # seconds: retry feedback rows the API could not copy to the Google Sheet
 
 
 async def _monthly_full_audit(db, site: Site, now: datetime) -> None:
@@ -74,6 +76,7 @@ async def run_forever() -> None:
     """The job loop. Runs as its own process (ROLE=worker) or inside the API (EMBEDDED_WORKER=true)."""
     log.info("worker started")
     last_schedule = 0.0
+    last_sheets = -float(SHEETS_EVERY)
     last_prune = -float(PRUNE_EVERY)  # loop.time() counts from boot, so this makes the first pass run at start-up
     loop = asyncio.get_running_loop()
     while True:
@@ -86,6 +89,11 @@ async def run_forever() -> None:
             except Exception:
                 log.exception("pruning failed")
             last_prune = loop.time()
+
+        if sheets.enabled() and loop.time() - last_sheets >= SHEETS_EVERY:
+            if count := await sheets.sync_pending():  # never raises
+                log.info("copied %d feedback row(s) to the Google Sheet", count)
+            last_sheets = loop.time()
 
         if loop.time() - last_schedule >= SCHEDULE_EVERY:
             try:

@@ -31,6 +31,10 @@ services:
         generateValue: true
       - key: ADMIN_EMAILS # who may read /app/admin/feedback (verified email required)
         sync: false
+      - key: GOOGLE_SHEETS_ID # feedback copy to Google Sheets (DEPLOY.md); optional
+        sync: false
+      - key: GOOGLE_SERVICE_ACCOUNT_JSON
+        sync: false
       - key: CORS_ORIGINS
         value: https://rankwise-xi.vercel.app
       - key: PUBLIC_API_URL

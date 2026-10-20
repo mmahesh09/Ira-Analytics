@@ -22,6 +22,7 @@ import { MonitorScene } from "@/components/marketing/monitor-scene";
 import { AuditConsole } from "@/components/marketing/audit-console";
 import { HeroStats } from "@/components/marketing/hero-stats";
 import { FeaturesOverview } from "@/components/marketing/features-overview";
+import { FeedbackBand } from "@/components/marketing/feedback-band";
 import { byChapter } from "@/lib/features";
 
 const ENGINES = ["Google", "ChatGPT", "Claude", "Perplexity", "Gemini", "Bing", "Copilot"];
@@ -204,6 +205,9 @@ export default function Home() {
           items={FAQS}
         />
       </section>
+
+      {/* FEEDBACK: invitation to the 3-step form; answers land in the team's Google Sheet */}
+      <FeedbackBand />
 
       {/* FINAL CTA: one action only (item 99) */}
       <section className="relative overflow-hidden border-t border-line">

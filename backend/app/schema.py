@@ -407,4 +407,6 @@ class Feedback(Base):
     requested_feature: Mapped[str | None] = mapped_column(Text)
     additional_comments: Mapped[str | None] = mapped_column(Text)
     contact_permission: Mapped[bool] = mapped_column(Boolean, default=False, server_default="false")
+    # set once the row is in the Google Sheet (app/sheets.py); NULL rows are retried by the worker
+    sheet_synced_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now(), nullable=False, index=True)

@@ -66,6 +66,11 @@ class Settings:
     admin_emails: frozenset[str] = field(default_factory=lambda: frozenset(e.lower() for e in _list("ADMIN_EMAILS", "")))
     # public feedback form submissions per hashed IP per 10 minutes
     feedback_per_ip_per_10min: int = int(os.getenv("FEEDBACK_PER_IP_PER_10MIN", "5"))
+    # copy each feedback submission into a Google Sheet (app/sheets.py); off while either is empty.
+    # GOOGLE_SERVICE_ACCOUNT_JSON: the service account key file, as raw JSON or base64
+    google_sheets_id: str = os.getenv("GOOGLE_SHEETS_ID", "")
+    google_sheets_tab: str = os.getenv("GOOGLE_SHEETS_TAB", "Feedback")
+    google_service_account: str = os.getenv("GOOGLE_SERVICE_ACCOUNT_JSON", "")
     # proxies in front of the API that append to X-Forwarded-For (Render: 1). 0 = ignore the header entirely
     trusted_proxy_hops: int = int(os.getenv("TRUSTED_PROXY_HOPS", "0"))
 

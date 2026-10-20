@@ -9,7 +9,7 @@ import io
 from datetime import date, datetime, time, timedelta, timezone
 from typing import Literal
 
-from fastapi import APIRouter, Depends, HTTPException, Query, Request
+from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, Query, Request
 from fastapi.responses import Response
 from pydantic import BaseModel
 from sqlalchemy import Select, func, or_, select, true, type_coerce
@@ -23,6 +23,7 @@ from ..config import settings
 from ..db import get_session
 from ..models import FeedbackIn, FeedbackRole, ProductFeature
 from ..schema import Feedback
+from ..sheets import sync_pending as copy_to_sheet
 
 router = APIRouter(prefix="/api", tags=["feedback"])
 
@@ -43,13 +44,15 @@ EXPORT_CAP = 50_000
 
 
 @router.post("/feedback", status_code=201)
-async def submit(body: FeedbackIn, request: Request, db: AsyncSession = Depends(get_session)):
+async def submit(body: FeedbackIn, request: Request, background: BackgroundTasks, db: AsyncSession = Depends(get_session)):
     await ratelimit.hit(ratelimit.ip_key("feedback", ratelimit.client_ip(request)), settings.feedback_per_ip_per_10min, window=600)
     values = body.model_dump()
     values["submission_id"] = str(body.submission_id)
     # the same submission_id again (double click, retry after a lost response) is accepted without a second row
     await db.execute(pg_insert(Feedback).values(**values).on_conflict_do_nothing(index_elements=["submission_id"]))
     await db.commit()
+    # copy to the Google Sheet after the response is sent; if it fails, the worker retries (sheet_synced_at stays NULL)
+    background.add_task(copy_to_sheet)
     return {"ok": True}
 
 

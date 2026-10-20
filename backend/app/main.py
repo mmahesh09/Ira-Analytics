@@ -20,7 +20,7 @@ from .db import engine, get_session
 from .models import AuditRequest
 from .ratelimit import client_ip
 from .schema import PreviewUsage
-from .routers import auth, billing, content, monitoring, sites
+from .routers import auth, billing, content, feedback, monitoring, sites
 from .runner import run_audit
 from .security import BodyLimit, OriginCheck, SecurityHeaders
 from .storage import load_shot
@@ -66,6 +66,7 @@ app.include_router(sites.router)
 app.include_router(billing.router)
 app.include_router(monitoring.router)
 app.include_router(content.router)
+app.include_router(feedback.router)
 
 async def _take_preview(db: AsyncSession, request: Request) -> str | None:
     """Counts one anonymous preview; returns the reason it's refused, or None. Stored in Postgres, so the

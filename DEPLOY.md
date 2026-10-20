@@ -238,3 +238,19 @@ docker compose --profile bundled-db up -d --build
 - Database: a free Postgres at <https://neon.tech> (SSL included).
 - Backend: a **Docker** Space built from `backend/Dockerfile`, with the same variables as step 4 and `PORT=7860`.
   Free Spaces sleep when idle and have no separate worker, so scheduled monitoring only runs while it's awake.
+
+---
+
+## Product feedback (every host)
+
+The public form lives at `/feedback`; answers are stored in the `feedback` table (migration `0004_feedback`, applied by
+`alembic upgrade head` on deploy like the others). Only admins can read them, at `/app/admin/feedback`.
+
+1. On the backend host, set `ADMIN_EMAILS` to a comma-separated list of admin emails (e.g. `you@example.com`).
+   Nothing to set on Vercel.
+2. The admin must sign in with that email **and** have it verified (the email link from sign-up). Without an email
+   provider, verify it once in Neon's SQL editor: `UPDATE "user" SET "emailVerified" = true WHERE email = 'you@example.com';`
+3. Optional: `FEEDBACK_PER_IP_PER_10MIN` (default 5) limits submissions per visitor.
+
+Everyone else, signed in or not, gets 404 from the admin API. Feedback can't be edited or deleted through the API.
+

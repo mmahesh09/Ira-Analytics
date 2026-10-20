@@ -62,6 +62,10 @@ class Settings:
     preview_per_ip_per_day: int = int(os.getenv("PREVIEW_PER_IP_PER_DAY", "2"))
     preview_daily_cap: int = int(os.getenv("PREVIEW_DAILY_CAP", "200"))
     preview_salt: str = os.getenv("PREVIEW_SALT", "")
+    # accounts that may read product feedback (/api/admin/feedback); the account's email must also be verified
+    admin_emails: frozenset[str] = field(default_factory=lambda: frozenset(e.lower() for e in _list("ADMIN_EMAILS", "")))
+    # public feedback form submissions per hashed IP per 10 minutes
+    feedback_per_ip_per_10min: int = int(os.getenv("FEEDBACK_PER_IP_PER_10MIN", "5"))
     # proxies in front of the API that append to X-Forwarded-For (Render: 1). 0 = ignore the header entirely
     trusted_proxy_hops: int = int(os.getenv("TRUSTED_PROXY_HOPS", "0"))
 

@@ -27,6 +27,7 @@ class User(Base):
     id: Mapped[str] = mapped_column(Text, primary_key=True)
     name: Mapped[str] = mapped_column(Text)
     email: Mapped[str] = mapped_column(Text)
+    email_verified: Mapped[bool] = mapped_column("emailVerified", Boolean, default=False)
 
 
 class AuthSession(Base):
@@ -372,3 +373,38 @@ class Alert(Base):
     message: Mapped[str] = mapped_column(String(500))
     read: Mapped[bool] = mapped_column(Boolean, default=False)
     created_at: Mapped[datetime] = _now()
+
+
+class Feedback(Base):
+    """Product feedback from the public /feedback form. Insert-only from the API; read by admins only.
+    No user id or IP is stored: name and email are whatever the person chose to give."""
+
+    __tablename__ = "feedback"
+    __table_args__ = (
+        CheckConstraint("satisfaction_rating BETWEEN 1 AND 5", name="ck_feedback_satisfaction"),
+        CheckConstraint("usability_rating BETWEEN 1 AND 5", name="ck_feedback_usability"),
+        CheckConstraint("recommendation_score BETWEEN 0 AND 10", name="ck_feedback_recommendation"),
+    )
+    id: Mapped[int] = mapped_column(BigInteger, primary_key=True)
+    # client-generated idempotency key: a double click or a retry after a lost response stores one row
+    submission_id: Mapped[str] = mapped_column(String(36), unique=True)
+    name: Mapped[str | None] = mapped_column(String(120))
+    email: Mapped[str | None] = mapped_column(String(254))
+    role: Mapped[str] = mapped_column(String(32))
+    role_other: Mapped[str | None] = mapped_column(String(120))
+    usage_frequency: Mapped[str] = mapped_column(String(32))
+    satisfaction_rating: Mapped[int] = mapped_column(Integer)
+    usability_rating: Mapped[int] = mapped_column(Integer)
+    recommendation_score: Mapped[int] = mapped_column(Integer)
+    primary_goal: Mapped[str] = mapped_column(String(32))
+    primary_goal_other: Mapped[str | None] = mapped_column(String(120))
+    features_used: Mapped[list] = mapped_column(JSONType, default=list)
+    most_valuable_feature: Mapped[str | None] = mapped_column(String(32))
+    biggest_challenge: Mapped[str] = mapped_column(String(32))
+    biggest_challenge_other: Mapped[str | None] = mapped_column(String(120))
+    positive_feedback: Mapped[str | None] = mapped_column(Text)
+    improvement_suggestions: Mapped[str | None] = mapped_column(Text)
+    requested_feature: Mapped[str | None] = mapped_column(Text)
+    additional_comments: Mapped[str | None] = mapped_column(Text)
+    contact_permission: Mapped[bool] = mapped_column(Boolean, default=False, server_default="false")
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now(), nullable=False, index=True)

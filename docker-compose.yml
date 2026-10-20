@@ -21,6 +21,7 @@ x-backend: &backend
     APP_ENV: ${APP_ENV:-production}
     PREVIEW_SALT: ${PREVIEW_SALT:-}
     TRUSTED_PROXY_HOPS: ${TRUSTED_PROXY_HOPS:-1}
+    ADMIN_EMAILS: ${ADMIN_EMAILS:-}
     DATABASE_URL: ${DATABASE_URL:-postgresql+asyncpg://rankwise:${POSTGRES_PASSWORD:-}@db:5432/rankwise}
     CORS_ORIGINS: ${CORS_ORIGINS:-http://localhost:3000}
     PUBLIC_API_URL: ${PUBLIC_API_URL:-http://localhost:8000}

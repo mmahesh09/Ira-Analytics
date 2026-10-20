@@ -3,13 +3,14 @@
 import { useCallback, useEffect, useState, type ReactNode } from "react";
 import Link from "next/link";
 import { useParams, usePathname, useRouter } from "next/navigation";
-import { Activity, CircleAlert, CreditCard, LayoutGrid, LogOut, Menu, Plus, Settings, ShieldCheck, Unlink, X } from "lucide-react";
+import { Activity, CircleAlert, CreditCard, Inbox, LayoutGrid, LogOut, Menu, MessageSquare, Plus, Settings, ShieldCheck, Unlink, X } from "lucide-react";
 import { AlertsBell } from "./monitoring";
 import { WorkspaceContext } from "./workspace";
 import { Logo } from "@/components/site-header";
 import { apiFetch } from "@/lib/api";
 import { authClient } from "@/lib/auth-client";
 import type { Site, User } from "@/lib/types";
+import posthog from "posthog-js";
 
 /** Tabs for the selected site. Later phases append Traffic, Search, Audits, AI visibility and Competitors. */
 const SITE_NAV = [
@@ -19,6 +20,12 @@ const SITE_NAV = [
   { href: "/links", label: "Broken links", icon: Unlink },
   { href: "/settings", label: "Settings", icon: Settings },
 ];
+
+const posthogEnabled = Boolean(process.env.NEXT_PUBLIC_POSTHOG_KEY && process.env.NEXT_PUBLIC_POSTHOG_HOST);
+
+function identifyUser(user: User) {
+  if (posthogEnabled) posthog.identify(user.id, { email: user.email, name: user.name });
+}
 
 function SiteMark({ site, active }: { site: Site; active?: boolean }) {
   return (
@@ -38,7 +45,8 @@ function Sidebar({ user, sites, onNavigate }: { user: User | null; sites: Site[]
   const active = sites?.find((s) => String(s.id) === siteId);
 
   async function logout() {
-    await authClient.signOut().catch(() => {});
+    const { error } = await authClient.signOut().catch(() => ({ error: true }));
+    if (!error && posthogEnabled) posthog.reset();
     router.replace("/login");
     router.refresh();
   }
@@ -130,6 +138,19 @@ function Sidebar({ user, sites, onNavigate }: { user: User | null; sites: Site[]
         >
           <ShieldCheck aria-hidden="true" className="size-4" /> Account &amp; security
         </Link>
+        {user?.is_admin && (
+          <Link
+            href="/app/admin/feedback"
+            onClick={onNavigate}
+            aria-current={pathname === "/app/admin/feedback" ? "page" : undefined}
+            className={`${item} ${pathname === "/app/admin/feedback" ? on : off}`}
+          >
+            <Inbox aria-hidden="true" className="size-4" /> Feedback (admin)
+          </Link>
+        )}
+        <Link href="/feedback" onClick={onNavigate} className={`${item} ${off}`}>
+          <MessageSquare aria-hidden="true" className="size-4" /> Send feedback
+        </Link>
         <button type="button" onClick={logout} className={`${item} w-full cursor-pointer ${off}`}>
           <LogOut aria-hidden="true" className="size-4" /> Log out
         </button>
@@ -145,6 +166,7 @@ export function AppShell({ children }: { children: ReactNode }) {
 
   const reload = useCallback(async () => {
     const [me, list] = await Promise.all([apiFetch<User>("/me"), apiFetch<Site[]>("/sites")]);
+    identifyUser(me);
     setUser(me);
     setSites(list);
   }, []);
@@ -154,6 +176,7 @@ export function AppShell({ children }: { children: ReactNode }) {
     Promise.all([apiFetch<User>("/me"), apiFetch<Site[]>("/sites")])
       .then(([me, list]) => {
         if (!live) return;
+        identifyUser(me);
         setUser(me);
         setSites(list);
       })

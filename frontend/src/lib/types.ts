@@ -54,6 +54,8 @@ export interface User {
   id: string;
   email: string;
   name: string;
+  /** can open /app/admin/feedback (ADMIN_EMAILS on the API, verified email) */
+  is_admin?: boolean;
 }
 
 export interface Site {

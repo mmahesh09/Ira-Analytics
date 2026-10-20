@@ -26,6 +26,7 @@ const NAV = [
     links: [
       ["Log in", "/login"],
       ["Create an account", "/signup"],
+      ["Share feedback", "/feedback"],
     ],
   },
   { title: "Legal", links: LEGAL_LINKS },

@@ -53,3 +53,14 @@ async def owned_site(site_id: int, user: User = Depends(current_user), db: Async
     if not site or site.owner_id != user.id:
         raise HTTPException(404, "Site not found.")
     return site
+
+
+def is_admin(user: User) -> bool:
+    return bool(user.email_verified) and user.email.lower() in settings.admin_emails
+
+
+async def admin_user(user: User = Depends(current_user)) -> User:
+    """Product admins (ADMIN_EMAILS, verified email). Everyone else gets 404, as if the route didn't exist."""
+    if not is_admin(user):
+        raise HTTPException(404, "Not found.")
+    return user

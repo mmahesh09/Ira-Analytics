@@ -78,6 +78,17 @@ async def grant(db: AsyncSession, user_id: str, source: str, amount: int, key: s
     return True
 
 
+async def revoke_pack(db: AsyncSession, user_id: str, payment_id: str) -> int:
+    """A refunded pack loses whatever it has left; credits already spent stay spent. Returns credits removed (0 on a repeat)."""
+    await lock_user(db, user_id)
+    pack = await db.scalar(select(CreditGrant).where(CreditGrant.key == f"pack:{payment_id}").with_for_update())
+    if pack is None or pack.remaining == 0:
+        return 0
+    removed, pack.remaining = pack.remaining, 0
+    await _ledger(db, user_id, "adjust", -removed, f"refund:{payment_id}", grant_id=pack.id, note="pack refunded")
+    return removed
+
+
 def _month_bounds(now: datetime) -> tuple[datetime, datetime]:
     start = now.replace(day=1, hour=0, minute=0, second=0, microsecond=0)
     end = (start + timedelta(days=32)).replace(day=1)

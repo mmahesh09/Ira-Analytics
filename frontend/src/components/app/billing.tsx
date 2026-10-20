@@ -494,7 +494,7 @@ export function BillingPage() {
                     <td className="py-2.5 pr-3 text-ink-3">{p.paid_at ? dateFmt.format(new Date(p.paid_at)) : "—"}</td>
                     <td className="py-2.5 pr-3">{p.description ?? (p.kind === "pack" ? "Credit pack" : "Subscription")}</td>
                     <td className={`py-2.5 pr-3 capitalize ${p.status === "captured" ? "text-good" : p.status === "failed" ? "text-bad" : "text-ink-3"}`}>
-                      {p.status === "captured" ? "Paid" : p.status}
+                      {p.status === "captured" ? "Paid" : p.status === "partial_refund" ? "Partly refunded" : p.status}
                     </td>
                     <td className="py-2.5 text-right tabular-nums">{formatPrice(p.amount / 100, p.currency)}</td>
                     <td className="py-2.5 pl-3 text-right">

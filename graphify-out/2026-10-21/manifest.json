@@ -294,9 +294,9 @@
     "semantic_hash": "5e340f67c40dba9b2cdd20cb7a56b3fe"
   },
   "frontend/src/app/(marketing)/page.tsx": {
-    "mtime": 1792515308.3859828,
-    "seen": 1792515773.2194984,
-    "ast_hash": "1a3c8c88e4bcff4244f34d37631a754a",
+    "mtime": 1792527807.282757,
+    "seen": 1792528270.6763077,
+    "ast_hash": "7fb3df1926feb3e57f376df967ad4318",
     "semantic_hash": ""
   },
   "frontend/src/app/(marketing)/pricing/page.tsx": {
@@ -1449,6 +1449,24 @@
     "mtime": 1792515298.5279021,
     "seen": 1792515773.2858377,
     "ast_hash": "27324da25a2125de8ae7dbf3a18e0173",
+    "semantic_hash": ""
+  },
+  "frontend/src/components/ui/hero-video-dialog.tsx": {
+    "mtime": 1792527790.1751451,
+    "seen": 1792528270.7793856,
+    "ast_hash": "73105445dea962f0297af770d5bcb219",
+    "semantic_hash": ""
+  },
+  "frontend/public/videos/rankwise-launch-poster.webp": {
+    "mtime": 1792527759.541996,
+    "seen": 1792528270.8704412,
+    "ast_hash": "da90e872e55cd4e2ba4d79b6172e518e",
+    "semantic_hash": ""
+  },
+  "frontend/public/videos/rankwise-launch.mp4": {
+    "mtime": 1792527708.018995,
+    "seen": 1792528270.87543,
+    "ast_hash": "99a3c84f77f6dbde12b5cb4fda988e42",
     "semantic_hash": ""
   }
 }

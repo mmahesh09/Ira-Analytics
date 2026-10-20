@@ -2,12 +2,13 @@
 
 import { useEffect, useState, useSyncExternalStore, type FormEvent } from "react";
 import { authClient } from "@/lib/auth-client";
-import { Check, CircleAlert, CircleCheck, LoaderCircle } from "lucide-react";
+import { Check, CircleAlert, CircleCheck, LoaderCircle, ReceiptText } from "lucide-react";
 import { apiFetch } from "@/lib/api";
 import { AUDIT_COST, DEEP_AUDIT_COST, PACKS, PLANS, formatPrice, isPlanId, type Currency, type PlanId } from "@/lib/plans";
 import type { Billing, PaymentRow } from "@/lib/types";
 import { CurrencyToggle, useCurrency } from "@/components/pricing/currency";
-import { PageHeader, useWorkspace } from "./workspace";
+import { Loading, PageHeader, useWorkspace } from "./workspace";
+import { ReceiptDialog, receiptFromPayment, type Receipt } from "./receipt-dialog";
 import posthog from "posthog-js";
 
 const posthogEnabled = Boolean(process.env.NEXT_PUBLIC_POSTHOG_KEY && process.env.NEXT_PUBLIC_POSTHOG_HOST);
@@ -57,6 +58,7 @@ export function BillingPage() {
   const [history, setHistory] = useState<PaymentRow[] | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
+  const [receipt, setReceipt] = useState<Receipt | null>(null);
   const chosenCurrency = useCurrency();
   const wanted = useSyncExternalStore(noSubscribe, readWantedPlan, () => null);
 
@@ -79,7 +81,7 @@ export function BillingPage() {
     return (
       <>
         <PageHeader eyebrow="Workspace" title="Billing" subtitle="Your plan and payments." />
-        {error ? <p className="m-10 font-sub text-[14px] text-bad">{error}</p> : <div className="m-10 h-48 animate-pulse rounded-xl bg-white/[0.03]" />}
+        {error ? <p className="m-10 font-sub text-[14px] text-bad">{error}</p> : <Loading title="Loading billing" />}
       </>
     );
   }
@@ -144,6 +146,7 @@ export function BillingPage() {
             setBilling(await apiFetch<Billing>("/billing/packs/verify", { body: response }));
             if (posthogEnabled) posthog.capture("credit_pack_purchased", { pack_id: packId, credits: order.credits, currency: order.currency });
             setNotice(`${order.credits} audit credits added. They're used after your monthly credits and last 12 months.`);
+            setReceipt({ id: response.razorpay_payment_id, description: `${order.credits} audit credits`, amount: order.amount / 100, currency: order.currency, paidAt: new Date() });
             reloadHistory();
           } catch (e) {
             setError(e instanceof Error ? e.message : "We couldn't confirm the payment yet. The credits will appear automatically.");
@@ -182,7 +185,15 @@ export function BillingPage() {
             setBilling(await apiFetch<Billing>("/billing/verify", { body: response }));
             if (posthogEnabled) posthog.capture("subscription_started", { plan, currency: sub.currency });
             setNotice(`Payment received. Your ${name} plan is being activated.`);
+            setReceipt({
+              id: response.razorpay_payment_id,
+              description: `${name} plan, monthly`,
+              amount: PLANS.find((p) => p.id === plan)!.price[sub.currency],
+              currency: sub.currency,
+              paidAt: new Date(),
+            });
             await waitForActivation();
+            reloadHistory();
           } catch (e) {
             setError(e instanceof Error ? e.message : "We couldn't confirm the payment yet. It will update automatically.");
           } finally {
@@ -472,6 +483,9 @@ export function BillingPage() {
                   <th scope="col" className="pb-2 font-normal">Description</th>
                   <th scope="col" className="pb-2 font-normal">Status</th>
                   <th scope="col" className="pb-2 text-right font-normal">Amount</th>
+                  <th scope="col" className="pb-2 font-normal">
+                    <span className="sr-only">Receipt</span>
+                  </th>
                 </tr>
               </thead>
               <tbody>
@@ -483,6 +497,17 @@ export function BillingPage() {
                       {p.status === "captured" ? "Paid" : p.status}
                     </td>
                     <td className="py-2.5 text-right tabular-nums">{formatPrice(p.amount / 100, p.currency)}</td>
+                    <td className="py-2.5 pl-3 text-right">
+                      {p.status === "captured" && (
+                        <button
+                          type="button"
+                          onClick={() => setReceipt(receiptFromPayment(p))}
+                          className="inline-flex min-h-8 cursor-pointer items-center gap-1.5 rounded-md px-2 text-[13px] text-cobalt hover:text-cobalt-hover"
+                        >
+                          <ReceiptText aria-hidden="true" className="size-3.5" /> Receipt
+                        </button>
+                      )}
+                    </td>
                   </tr>
                 ))}
               </tbody>
@@ -492,6 +517,7 @@ export function BillingPage() {
 
         <DeleteAccount paidAndRenewing={paid && billing.status !== "cancelled" && !billing.cancel_at_cycle_end} />
       </div>
+      <ReceiptDialog receipt={receipt} onClose={() => setReceipt(null)} />
     </>
   );
 }

@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { ArrowRight, Check, Lock, Timer } from "lucide-react";
+import { ArrowRight } from "lucide-react";
 import { HeroPreview } from "@/components/hero-preview";
 import { UrlForm } from "@/components/url-form";
 import { Reveal } from "@/components/reveal";
@@ -20,7 +20,9 @@ import {
 } from "@/components/marketing/chapters";
 import { MonitorScene } from "@/components/marketing/monitor-scene";
 import { AuditConsole } from "@/components/marketing/audit-console";
-import { FEATURES, byChapter, liveCount } from "@/lib/features";
+import { HeroStats } from "@/components/marketing/hero-stats";
+import { FeaturesOverview } from "@/components/marketing/features-overview";
+import { byChapter } from "@/lib/features";
 
 const ENGINES = ["Google", "ChatGPT", "Claude", "Perplexity", "Gemini", "Bing", "Copilot"];
 
@@ -74,8 +76,6 @@ function SampleTag({ children = "Sample data" }: { children?: React.ReactNode })
 const STEPS = ["Paste your website address", "We run 35+ checks in about a minute", "Get every fix ranked, with the code"];
 
 export default function Home() {
-  const planned = FEATURES.filter((f) => f.status === "soon");
-
   return (
     <>
       {/* HERO: split layout, one job (run an audit) */}
@@ -118,23 +118,8 @@ export default function Home() {
           </div>
         </div>
 
-        {/* trust strip: only claims we can stand behind (item 9) */}
-        <div className="relative border-t border-line">
-          <ul className="mx-auto grid max-w-[1200px] gap-x-8 gap-y-3 px-4 py-6 font-sub text-[14px] text-ink-2 sm:grid-cols-2 sm:px-6 lg:grid-cols-4">
-            <li className="flex items-center gap-2.5">
-              <Check aria-hidden="true" className="size-4 shrink-0 text-good" /> Free audit, no signup
-            </li>
-            <li className="flex items-center gap-2.5">
-              <Timer aria-hidden="true" className="size-4 shrink-0 text-cobalt" /> Results in about a minute
-            </li>
-            <li className="flex items-center gap-2.5">
-              <Lock aria-hidden="true" className="size-4 shrink-0 text-cobalt" /> Read-only: we never change your site
-            </li>
-            <li className="flex items-center gap-2.5 text-ink-3">
-              Checked against {ENGINES.slice(0, 4).join(", ")} and more
-            </li>
-          </ul>
-        </div>
+        {/* stats band: only numbers we can stand behind (item 9) */}
+        <HeroStats engines={ENGINES} />
       </section>
 
       {/* PRODUCT: the full report, as one calm visual */}
@@ -188,38 +173,9 @@ export default function Home() {
         </div>
       </Chapter>
 
-      {/* COMING NEXT: planned features, visibly separate from what works today (item 66) */}
+      {/* EVERY TOOL: live tools first, planned ones visibly tagged (item 66) */}
       <Chapter id="roadmap" tint>
-        <div className="grid gap-12 lg:grid-cols-[minmax(0,0.8fr)_minmax(0,1.2fr)]">
-          <Reveal>
-            <p className="eyebrow">Coming next</p>
-            <h2 className="t-h2 mt-4 max-w-[14ch]">
-              <span className="text-gradient pb-1">On the roadmap,</span> <span className="text-accent pb-1">not on the bill.</span>
-            </h2>
-            <p className="t-lead mt-5 max-w-[42ch]">
-              {liveCount} of {FEATURES.length} tools work today. These {planned.length} are planned, and we never charge for a feature before it ships.
-            </p>
-            <Link href="/features" className="btn-ghost mt-8 inline-flex h-11 items-center gap-2 rounded-full px-5 font-sub text-[14px]">
-              See all {FEATURES.length} tools <ArrowRight aria-hidden="true" className="size-4" />
-            </Link>
-          </Reveal>
-          <Reveal delay={0.06}>
-            <ul className="grid gap-3 sm:grid-cols-2">
-              {planned.map((f) => (
-                <li key={f.slug} className="flex items-start gap-3 rounded-xl border border-dashed border-line-strong p-4">
-                  <f.icon aria-hidden="true" className="mt-0.5 size-5 shrink-0 text-ink-3" />
-                  <span className="min-w-0">
-                    <span className="flex items-center gap-2">
-                      <span className="text-[15px] font-medium text-ink-2">{f.name}</span>
-                      <span className="rounded-full border border-line-strong px-2 py-0.5 font-sub text-[11px] text-ink-3">Planned</span>
-                    </span>
-                    <span className="mt-1 block text-[14px] leading-snug text-ink-3">{f.pitch}</span>
-                  </span>
-                </li>
-              ))}
-            </ul>
-          </Reveal>
-        </div>
+        <FeaturesOverview />
       </Chapter>
 
       {/* PRICING */}

@@ -142,110 +142,118 @@ export function AuthForm({ mode }: { mode: "login" | "signup" }) {
     );
   }
 
+  // card layout (Tailark "login-blocks-2" / "sign-up-2", rebuilt on Rankwise tokens): framed form, switch link in the footer strip
   return (
     <div data-enter="" style={{ ["--y" as string]: "12px" }}>
-      <h1 className="text-[30px] font-semibold leading-tight tracking-[-0.025em]">{signup ? "Create your account" : "Welcome back"}</h1>
-      <p className="mt-2 text-[15px] leading-relaxed text-ink-3">
-        {signup ? "Start tracking traffic, rankings and AI visibility. Free, no card needed." : "Log in to see your sites, audits and AI visibility."}
-      </p>
-      {plan && (
-        <p className="mt-4 inline-flex items-center gap-2 rounded-full border border-white/[0.1] bg-white/[0.03] px-3 py-1 font-sub text-[12.5px] text-ink-2">
-          You picked {plan.name}. Create your account, then confirm payment on the next screen.
-        </p>
-      )}
-
-      {problem && (
-        <div role="alert" className="mt-8 flex gap-3 rounded-lg border border-bad/30 bg-bad-soft px-4 py-3 font-sub text-[13.5px] leading-relaxed text-ink-2">
-          <CircleAlert aria-hidden="true" className="mt-0.5 size-4 shrink-0 text-bad" />
-          <p>{problem.message}</p>
-        </div>
-      )}
-
-      <form onSubmit={submit} className={`${problem ? "mt-6" : "mt-8"} space-y-5`}>
-        {signup && (
-          <Field label="Full name">
-            {(id) => <input id={id} name="name" autoComplete="name" placeholder="Ada Lovelace" maxLength={120} className={`${fieldClass} ${border(false)}`} />}
-          </Field>
-        )}
-        <Field label="Work email">
-          {(id) => (
-            <input
-              id={id}
-              name="email"
-              type="email"
-              autoComplete="email"
-              inputMode="email"
-              required
-              placeholder="you@company.com"
-              aria-invalid={emailInvalid || undefined}
-              className={`${fieldClass} ${border(emailInvalid)}`}
-            />
+      <div className="panel overflow-hidden rounded-2xl">
+        <div className="p-6 sm:p-8">
+          <p className="eyebrow flex items-center gap-2 text-[11px]">
+            <span className="size-1.5 rounded-full bg-cobalt shadow-[0_0_8px_var(--cobalt)]" /> {signup ? "Free account" : "Log in"}
+          </p>
+          <h1 className="mt-4 text-[28px] font-semibold leading-tight tracking-[-0.025em]">{signup ? "Create your account" : "Welcome back"}</h1>
+          <p className="mt-2 text-[15px] leading-relaxed text-ink-3">
+            {signup ? "Start tracking traffic, rankings and AI visibility. Free, no card needed." : "Log in to see your sites, audits and AI visibility."}
+          </p>
+          {plan && (
+            <p className="mt-4 inline-flex items-center gap-2 rounded-full border border-white/[0.1] bg-white/[0.03] px-3 py-1 font-sub text-[12.5px] text-ink-2">
+              You picked {plan.name}. Create your account, then confirm payment on the next screen.
+            </p>
           )}
-        </Field>
-        <Field
-          label="Password"
-          invalid={signup && password.length > 0 && password.length < 8}
-          hint={signup ? (password.length > 0 && password.length < 8 ? `${8 - password.length} more character${8 - password.length === 1 ? "" : "s"} needed` : "At least 8 characters") : undefined}
-        >
-          {(id, describedBy) => (
-            <div className="relative">
-              <input
-                id={id}
-                name="password"
-                type={showPassword ? "text" : "password"}
-                autoComplete={signup ? "new-password" : "current-password"}
-                required
-                minLength={signup ? 8 : undefined}
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                aria-describedby={describedBy}
-                aria-invalid={passwordInvalid || undefined}
-                className={`${fieldClass} ${border(passwordInvalid)} pr-11`}
-              />
-              <button
-                type="button"
-                onClick={() => setShowPassword((s) => !s)}
-                aria-label={showPassword ? "Hide password" : "Show password"}
-                aria-pressed={showPassword}
-                className="absolute inset-y-0 right-0 grid w-11 cursor-pointer place-items-center rounded-r-lg text-ink-3 transition-colors hover:text-ink"
-              >
-                {showPassword ? <EyeOff className="size-4" /> : <Eye className="size-4" />}
-              </button>
+
+          {problem && (
+            <div role="alert" className="mt-8 flex gap-3 rounded-lg border border-bad/30 bg-bad-soft px-4 py-3 font-sub text-[13.5px] leading-relaxed text-ink-2">
+              <CircleAlert aria-hidden="true" className="mt-0.5 size-4 shrink-0 text-bad" />
+              <p>{problem.message}</p>
             </div>
           )}
-        </Field>
-        {!signup && (
-          <p className="-mt-2 text-right font-sub text-[13px]">
-            <Link href="/forgot-password" className="text-ink-3 underline-offset-4 hover:text-ink hover:underline">
-              Forgot password?
-            </Link>
-          </p>
-        )}
 
-        <button
-          type="submit"
-          disabled={pending}
-          className="mt-2 flex h-11 w-full cursor-pointer items-center justify-center gap-2 btn-brand rounded-full font-sub text-[14.5px] font-medium disabled:cursor-wait disabled:opacity-80"
-        >
-          {pending ? (
-            <>
-              <LoaderCircle aria-hidden="true" className="size-4 animate-spin" /> {signup ? "Creating your account…" : "Logging in…"}
-            </>
-          ) : (
-            <>
-              {signup ? "Create account" : "Log in"} <ArrowRight aria-hidden="true" className="size-4" />
-            </>
-          )}
-        </button>
-      </form>
+          <form onSubmit={submit} className={`${problem ? "mt-6" : "mt-8"} space-y-5`}>
+            {signup && (
+              <Field label="Full name">
+                {(id) => <input id={id} name="name" autoComplete="name" placeholder="Ada Lovelace" maxLength={120} className={`${fieldClass} ${border(false)}`} />}
+              </Field>
+            )}
+            <Field label="Work email">
+              {(id) => (
+                <input
+                  id={id}
+                  name="email"
+                  type="email"
+                  autoComplete="email"
+                  inputMode="email"
+                  required
+                  placeholder="you@company.com"
+                  aria-invalid={emailInvalid || undefined}
+                  className={`${fieldClass} ${border(emailInvalid)}`}
+                />
+              )}
+            </Field>
+            <Field
+              label="Password"
+              invalid={signup && password.length > 0 && password.length < 8}
+              hint={signup ? (password.length > 0 && password.length < 8 ? `${8 - password.length} more character${8 - password.length === 1 ? "" : "s"} needed` : "At least 8 characters") : undefined}
+            >
+              {(id, describedBy) => (
+                <div className="relative">
+                  <input
+                    id={id}
+                    name="password"
+                    type={showPassword ? "text" : "password"}
+                    autoComplete={signup ? "new-password" : "current-password"}
+                    required
+                    minLength={signup ? 8 : undefined}
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    aria-describedby={describedBy}
+                    aria-invalid={passwordInvalid || undefined}
+                    className={`${fieldClass} ${border(passwordInvalid)} pr-11`}
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowPassword((s) => !s)}
+                    aria-label={showPassword ? "Hide password" : "Show password"}
+                    aria-pressed={showPassword}
+                    className="absolute inset-y-0 right-0 grid w-11 cursor-pointer place-items-center rounded-r-lg text-ink-3 transition-colors hover:text-ink"
+                  >
+                    {showPassword ? <EyeOff className="size-4" /> : <Eye className="size-4" />}
+                  </button>
+                </div>
+              )}
+            </Field>
+            {!signup && (
+              <p className="-mt-2 text-right font-sub text-[13px]">
+                <Link href="/forgot-password" className="text-ink-3 underline-offset-4 hover:text-ink hover:underline">
+                  Forgot password?
+                </Link>
+              </p>
+            )}
 
-      <p className="mt-8 font-sub text-[14px] text-ink-3">
-        {signup ? "Already have an account? " : "New to Rankwise? "}
-        <Link href={signup ? "/login" : "/signup"} className="font-medium text-ink underline-offset-4 hover:underline">
-          {signup ? "Log in" : "Create an account"}
-        </Link>
-      </p>
-      {signup && <p className="mt-10 border-t border-line pt-6 text-[12.5px] leading-relaxed text-ink-3">We never store IP addresses or set tracking cookies on your visitors.</p>}
+            <button
+              type="submit"
+              disabled={pending}
+              className="mt-2 flex h-11 w-full cursor-pointer items-center justify-center gap-2 btn-brand rounded-full font-sub text-[14.5px] font-medium disabled:cursor-wait disabled:opacity-80"
+            >
+              {pending ? (
+                <>
+                  <LoaderCircle aria-hidden="true" className="size-4 animate-spin" /> {signup ? "Creating your account…" : "Logging in…"}
+                </>
+              ) : (
+                <>
+                  {signup ? "Create account" : "Log in"} <ArrowRight aria-hidden="true" className="size-4" />
+                </>
+              )}
+            </button>
+          </form>
+        </div>
+
+        <p className="border-t border-line bg-white/[0.02] px-6 py-4 text-center font-sub text-[14px] text-ink-3 sm:px-8">
+          {signup ? "Already have an account? " : "New to Rankwise? "}
+          <Link href={signup ? "/login" : "/signup"} className="font-medium text-ink underline-offset-4 hover:underline">
+            {signup ? "Log in" : "Create an account"}
+          </Link>
+        </p>
+      </div>
+      {signup && <p className="mt-6 text-center text-[12.5px] leading-relaxed text-ink-3">We never store IP addresses or set tracking cookies on your visitors.</p>}
     </div>
   );
 }

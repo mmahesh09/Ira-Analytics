@@ -507,7 +507,8 @@ export function LinksPage() {
               <li key={r.url} className="grid gap-1 bg-[#0d0e0f] px-5 py-3.5 sm:grid-cols-[64px_minmax(0,1fr)_auto] sm:items-center sm:gap-4">
                 <span className="w-fit rounded bg-bad-soft px-1.5 py-0.5 font-mono text-[12px] text-bad">{r.status_code ?? "error"}</span>
                 <span className="min-w-0">
-                  <a href={r.url} target="_blank" rel="noreferrer nofollow" className="inline-flex max-w-full items-center gap-1 truncate text-[14px] hover:underline">
+                  {/* crawled from the audited site: only http(s) becomes a link (rows saved before the crawler filtered schemes) */}
+                  <a href={/^https?:\/\//i.test(r.url) ? r.url : undefined} target="_blank" rel="noreferrer nofollow" className="inline-flex max-w-full items-center gap-1 truncate text-[14px] hover:underline">
                     <span className="truncate">{r.url}</span> <ExternalLink aria-hidden="true" className="size-3 shrink-0 text-ink-3" />
                   </a>
                   <span className="block truncate font-sub text-[12px] text-ink-3">

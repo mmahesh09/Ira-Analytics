@@ -16,7 +16,9 @@ type Problem = { message: ReactNode; field?: "email" | "password" };
 /** Turns a Better Auth error into something a person can act on. */
 function describe(error: { code?: string; status: number; message?: string }, signup: boolean): Problem {
   const code = error.code ?? "";
-  if (error.status === 429) return { message: "Too many attempts. Wait a minute, then try again." };
+  // the per-account lockout explains itself; the per-IP limit gets the generic message
+  if (error.status === 429) return { message: error.message?.startsWith("Too many failed") ? error.message : "Too many attempts. Wait a minute, then try again." };
+  if (code === "PASSWORD_COMPROMISED") return { field: "password", message: "This password appeared in a data breach, so it's easy to guess. Choose a different one." };
   if (error.status >= 500 || error.status === 0)
     return { message: "We can't reach the account service right now. Your details are fine; please try again in a moment." };
   if (code.startsWith("USER_ALREADY_EXISTS"))
@@ -38,10 +40,10 @@ function describe(error: { code?: string; status: number; message?: string }, si
   return { message: error.message || (signup ? "We couldn't create your account. Please try again." : "We couldn't sign you in. Please try again.") };
 }
 
-const fieldClass =
+export const fieldClass =
   "h-11 w-full rounded-lg border bg-white/[0.03] px-3.5 font-sub text-[15px] text-ink outline-none transition-[border-color,box-shadow,background-color] duration-200 placeholder:text-ink-3/70 hover:border-white/[0.16] focus-visible:border-white/30 focus-visible:bg-white/[0.04] focus-visible:shadow-[0_0_0_4px_rgb(255_255_255/0.06)] focus-visible:outline-none";
 
-function Field({ label, hint, invalid, children }: { label: string; hint?: ReactNode; invalid?: boolean; children: (id: string, describedBy?: string) => ReactNode }) {
+export function Field({ label, hint, invalid, children }: { label: string; hint?: ReactNode; invalid?: boolean; children: (id: string, describedBy?: string) => ReactNode }) {
   const id = useId();
   const hintId = hint ? `${id}-hint` : undefined;
   return (
@@ -66,6 +68,7 @@ export function AuthForm({ mode }: { mode: "login" | "signup" }) {
   const [pending, setPending] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [password, setPassword] = useState("");
+  const [verifySent, setVerifySent] = useState<string | null>(null);
   const planParam = useSyncExternalStore(noSubscribe, readPlan, () => null);
   const plan = signup && isPlanId(planParam) && planParam !== "free" ? PLANS.find((p) => p.id === planParam) : undefined;
 
@@ -77,11 +80,22 @@ export function AuthForm({ mode }: { mode: "login" | "signup" }) {
     setProblem(null);
     setPending(true);
     try {
-      const { error } = signup
+      const { data, error } = signup
         ? await authClient.signUp.email({ email, password, name: name || email.split("@")[0] })
         : await authClient.signIn.email({ email, password });
       if (error) {
         setProblem(describe(error, signup));
+        setPending(false);
+        return;
+      }
+      if (data && "twoFactorRedirect" in data && data.twoFactorRedirect) {
+        // password was right; the authenticator code finishes the sign-in (keeps ?next=)
+        router.push(`/two-factor${window.location.search}`);
+        return;
+      }
+      if (signup && data && "token" in data && !data.token) {
+        // email verification is required: no session until the link in the email is opened
+        setVerifySent(email);
         setPending(false);
         return;
       }
@@ -104,6 +118,20 @@ export function AuthForm({ mode }: { mode: "login" | "signup" }) {
   const passwordInvalid = problem?.field === "password";
   const emailInvalid = problem?.field === "email";
   const border = (bad: boolean) => (bad ? "border-bad/60" : "border-white/[0.1]");
+
+  if (verifySent) {
+    return (
+      <div data-enter="" style={{ ["--y" as string]: "12px" }}>
+        <h1 className="text-[30px] font-semibold leading-tight tracking-[-0.025em]">Check your inbox</h1>
+        <p className="mt-3 text-[15px] leading-relaxed text-ink-3">
+          If {verifySent} can be used for a new account, we&apos;ve sent it a link to confirm the address. Open it to finish signing up.
+        </p>
+        <Link href="/login" className="mt-8 inline-block font-sub text-[14px] font-medium text-ink underline-offset-4 hover:underline">
+          Back to log in
+        </Link>
+      </div>
+    );
+  }
 
   return (
     <div data-enter="" style={{ ["--y" as string]: "12px" }}>
@@ -177,6 +205,13 @@ export function AuthForm({ mode }: { mode: "login" | "signup" }) {
             </div>
           )}
         </Field>
+        {!signup && (
+          <p className="-mt-2 text-right font-sub text-[13px]">
+            <Link href="/forgot-password" className="text-ink-3 underline-offset-4 hover:text-ink hover:underline">
+              Forgot password?
+            </Link>
+          </p>
+        )}
 
         <button
           type="submit"

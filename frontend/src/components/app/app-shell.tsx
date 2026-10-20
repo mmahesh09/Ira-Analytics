@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useState, type ReactNode } from "react";
 import Link from "next/link";
 import { useParams, usePathname, useRouter } from "next/navigation";
-import { Activity, CircleAlert, CreditCard, LayoutGrid, LogOut, Menu, Plus, Settings, Unlink, X } from "lucide-react";
+import { Activity, CircleAlert, CreditCard, LayoutGrid, LogOut, Menu, Plus, Settings, ShieldCheck, Unlink, X } from "lucide-react";
 import { AlertsBell } from "./monitoring";
 import { WorkspaceContext } from "./workspace";
 import { Logo } from "@/components/site-header";
@@ -121,6 +121,14 @@ function Sidebar({ user, sites, onNavigate }: { user: User | null; sites: Site[]
           className={`${item} mt-3 ${pathname === "/app/billing" ? on : off}`}
         >
           <CreditCard aria-hidden="true" className="size-4" /> Billing
+        </Link>
+        <Link
+          href="/app/account"
+          onClick={onNavigate}
+          aria-current={pathname === "/app/account" ? "page" : undefined}
+          className={`${item} ${pathname === "/app/account" ? on : off}`}
+        >
+          <ShieldCheck aria-hidden="true" className="size-4" /> Account &amp; security
         </Link>
         <button type="button" onClick={logout} className={`${item} w-full cursor-pointer ${off}`}>
           <LogOut aria-hidden="true" className="size-4" /> Log out

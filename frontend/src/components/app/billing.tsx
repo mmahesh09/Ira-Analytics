@@ -8,6 +8,9 @@ import { AUDIT_COST, DEEP_AUDIT_COST, PACKS, PLANS, formatPrice, isPlanId, type 
 import type { Billing, PaymentRow } from "@/lib/types";
 import { CurrencyToggle, useCurrency } from "@/components/pricing/currency";
 import { PageHeader, useWorkspace } from "./workspace";
+import posthog from "posthog-js";
+
+const posthogEnabled = Boolean(process.env.NEXT_PUBLIC_POSTHOG_KEY && process.env.NEXT_PUBLIC_POSTHOG_HOST);
 
 type Subscribe = { subscription_id: string; key_id: string; plan: PlanId; currency: Currency; prefill: Record<string, string> };
 type CheckoutSuccess = { razorpay_payment_id: string; razorpay_subscription_id: string; razorpay_signature: string };
@@ -110,6 +113,7 @@ export function BillingPage() {
     setBusy(plan);
     try {
       setBilling(await apiFetch<Billing>("/billing/change-plan", { body: { plan } }));
+      if (posthogEnabled) posthog.capture("plan_changed", { plan, change_type: up ? "upgrade" : "downgrade" });
       setNotice(up ? `You're on ${target.name}. The extra credits are in your balance.` : `Done. You'll move to ${target.name} on ${ends}.`);
       reloadHistory();
     } catch (e) {
@@ -138,6 +142,7 @@ export function BillingPage() {
         handler: async (response: PackSuccess) => {
           try {
             setBilling(await apiFetch<Billing>("/billing/packs/verify", { body: response }));
+            if (posthogEnabled) posthog.capture("credit_pack_purchased", { pack_id: packId, credits: order.credits, currency: order.currency });
             setNotice(`${order.credits} audit credits added. They're used after your monthly credits and last 12 months.`);
             reloadHistory();
           } catch (e) {
@@ -175,6 +180,7 @@ export function BillingPage() {
         handler: async (response: CheckoutSuccess) => {
           try {
             setBilling(await apiFetch<Billing>("/billing/verify", { body: response }));
+            if (posthogEnabled) posthog.capture("subscription_started", { plan, currency: sub.currency });
             setNotice(`Payment received. Your ${name} plan is being activated.`);
             await waitForActivation();
           } catch (e) {
@@ -200,6 +206,7 @@ export function BillingPage() {
     setError(null);
     try {
       setBilling(await apiFetch<Billing>("/billing/cancel", { method: "POST" }));
+      if (posthogEnabled) posthog.capture("subscription_cancelled", { plan: billing?.plan });
       setNotice(`Cancelled. ${current.name} stays active until ${ends}.`);
     } catch (e) {
       setError(e instanceof Error ? e.message : "Couldn't cancel. Try again.");

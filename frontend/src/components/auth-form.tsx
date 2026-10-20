@@ -6,10 +6,12 @@ import { useRouter } from "next/navigation";
 import { ArrowRight, CircleAlert, Eye, EyeOff, LoaderCircle } from "lucide-react";
 import { authClient } from "@/lib/auth-client";
 import { PLANS, isPlanId } from "@/lib/plans";
+import posthog from "posthog-js";
 
 // ?plan= from the pricing CTAs; read client-side only so the page still prerenders
 const noSubscribe = () => () => {};
 const readPlan = () => new URLSearchParams(window.location.search).get("plan");
+const posthogEnabled = Boolean(process.env.NEXT_PUBLIC_POSTHOG_KEY && process.env.NEXT_PUBLIC_POSTHOG_HOST);
 
 type Problem = { message: ReactNode; field?: "email" | "password" };
 
@@ -98,6 +100,13 @@ export function AuthForm({ mode }: { mode: "login" | "signup" }) {
         setVerifySent(email);
         setPending(false);
         return;
+      }
+      if (posthogEnabled && data?.user?.id) {
+        posthog.identify(data.user.id, {
+          email: data.user.email,
+          name: data.user.name,
+        });
+        posthog.capture(signup ? "signup_completed" : "login_completed", signup && plan ? { selected_plan: plan.id } : undefined);
       }
       if (plan) {
         try {

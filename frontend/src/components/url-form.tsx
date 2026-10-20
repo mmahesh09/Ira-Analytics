@@ -4,6 +4,9 @@ import { useId, useState, type FormEvent } from "react";
 import { useRouter } from "next/navigation";
 import { ArrowRight, Globe } from "lucide-react";
 import { cleanUrl } from "@/lib/api";
+import posthog from "posthog-js";
+
+const posthogEnabled = Boolean(process.env.NEXT_PUBLIC_POSTHOG_KEY && process.env.NEXT_PUBLIC_POSTHOG_HOST);
 
 export function UrlForm({
   defaultValue = "",
@@ -36,6 +39,7 @@ export function UrlForm({
     }
     setError(null);
     setPending(true);
+    if (posthogEnabled) posthog.capture("audit_requested", { audit_type: "preview" });
     router.push(`/audit?url=${encodeURIComponent(url)}`);
   }
 

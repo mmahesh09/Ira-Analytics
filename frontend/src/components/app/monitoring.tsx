@@ -11,6 +11,9 @@ import { EFFORT_LABEL } from "@/lib/scoring";
 import type { AlertRow, AuditPoint, Billing, IssueRow, LinkRow, SiteStatus, VerificationRow } from "@/lib/types";
 import { COLOR } from "@/components/audit/charts";
 import { Loading, NotFound, PageHeader, useSite } from "./workspace";
+import posthog from "posthog-js";
+
+const posthogEnabled = Boolean(process.env.NEXT_PUBLIC_POSTHOG_KEY && process.env.NEXT_PUBLIC_POSTHOG_HOST);
 
 /** GET with reload; setState only in promise callbacks (no sync setState in effects). */
 export function useApi<T>(path: string | null) {
@@ -216,6 +219,7 @@ export function MonitoringPage() {
       } else {
         await apiFetch(`/sites/${site!.id}/audits`, { body: { deep: kind === "deep" }, headers: { "Idempotency-Key": crypto.randomUUID() } });
       }
+      if (posthogEnabled) posthog.capture("audit_started", { audit_type: kind });
       reloadBilling();
     } catch (e) {
       const status = e instanceof ApiError ? e.status : 0;
@@ -399,6 +403,7 @@ export function IssuesPage() {
     setError(null);
     try {
       await apiFetch(`/sites/${site!.id}/issues/${issueId}/verify`, { method: "POST" });
+      if (posthogEnabled) posthog.capture("issue_verification_requested");
       reloadChecks();
     } catch (e) {
       setError(e instanceof Error ? e.message : "Couldn\u2019t start the check. Try again.");

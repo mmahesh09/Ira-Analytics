@@ -14,6 +14,7 @@ from playwright.async_api import Route, async_playwright
 
 from .common import score_checks
 from .config import settings
+from .egress import EgressProxy
 from .fetcher import AuditError, _assert_public_host
 from .models import Check, ModuleResult
 from .performance import _browser_path
@@ -81,8 +82,14 @@ async def analyze_accessibility(url: str) -> ModuleResult:
     if not (settings.browser_checks and browser_path):
         return ModuleResult(key="accessibility", available=False, summary="Accessibility checks need a local Chrome or Edge.")
     try:
-        async with _browser_slot, async_playwright() as pw:
-            browser = await pw.chromium.launch(executable_path=browser_path, headless=True, args=["--no-first-run", "--disable-extensions", *(["--no-sandbox", "--disable-dev-shm-usage"] if settings.chrome_no_sandbox else [])])
+        # two layers: the egress proxy is the browser's only route out (pinned, rebinding-proof), and the route
+        # guard below also refuses odd schemes and private hosts before a request leaves the page
+        async with _browser_slot, EgressProxy() as proxy, async_playwright() as pw:
+            browser = await pw.chromium.launch(
+                executable_path=browser_path, headless=True, proxy={"server": proxy.url, "bypass": "<-loopback>"},
+                args=["--no-first-run", "--disable-extensions", "--disable-quic", "--force-webrtc-ip-handling-policy=disable_non_proxied_udp",
+                      *(["--no-sandbox", "--disable-dev-shm-usage"] if settings.chrome_no_sandbox else [])],
+            )
             try:
                 # service workers could fetch outside the route guard, so they are blocked
                 context = await browser.new_context(viewport=VIEWPORT, user_agent=settings.user_agent + " (accessibility check)", service_workers="block")

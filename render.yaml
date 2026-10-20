@@ -3,7 +3,7 @@
 # on first creation (sync: false) and never live in git. See DEPLOY.md → "Render (free)".
 services:
   - type: web
-    name: rankwise-api
+    name: rankwise-api # the live service was created by hand as ira-analytics (https://ira-analytics.onrender.com)
     runtime: docker
     rootDir: backend
     dockerfilePath: ./backend/Dockerfile
@@ -38,7 +38,7 @@ services:
       - key: CORS_ORIGINS
         value: https://rankwise-xi.vercel.app
       - key: PUBLIC_API_URL
-        value: https://rankwise-api.onrender.com
+        value: https://ira-analytics.onrender.com
       - key: DATABASE_URL # Neon connection string (postgresql://…?sslmode=require)
         sync: false
       - key: PAGESPEED_API_KEY # Speed scores on the free tier come from PageSpeed Insights

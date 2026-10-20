@@ -14,12 +14,13 @@ from sqlalchemy import func, select, text
 from sqlalchemy.dialects.postgresql import insert as pg_insert
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from .auth import optional_user
 from .config import settings
 from .credits import lock_user
 from .db import engine, get_session
 from .models import AuditRequest
 from .ratelimit import client_ip
-from .schema import PreviewUsage
+from .schema import PreviewUsage, User
 from .routers import auth, billing, content, feedback, monitoring, sites
 from .runner import run_audit
 from .security import BodyLimit, OriginCheck, SecurityHeaders
@@ -68,25 +69,31 @@ app.include_router(monitoring.router)
 app.include_router(content.router)
 app.include_router(feedback.router)
 
-async def _take_preview(db: AsyncSession, request: Request) -> str | None:
-    """Counts one anonymous preview; returns the reason it's refused, or None. Stored in Postgres, so the
-    limit survives restarts and holds across instances; IPs are kept only as salted hashes."""
+async def _take_preview(db: AsyncSession, request: Request, user: User | None = None) -> str | None:
+    """Counts one preview; returns the reason it's refused, or None. Stored in Postgres, so the limit survives
+    restarts and holds across instances. Anonymous visitors are keyed on a salted IP hash and share the global
+    daily cap; signed-in users are keyed on their account with their own, larger allowance."""
     today = datetime.now(timezone.utc).date()
-    ip_hash = hashlib.sha256(f"{settings.preview_salt}|{client_ip(request)}".encode()).hexdigest()
-    await lock_user(db, "all", "preview")  # makes the global daily cap exact
-    if (await db.scalar(select(func.coalesce(func.sum(PreviewUsage.count), 0)).where(PreviewUsage.day == today))) >= settings.preview_daily_cap:
-        await db.rollback()
-        return "Free previews are busy today. Create a free account for your monthly full audit."
+    if user:
+        key, limit = hashlib.sha256(f"user|{user.id}".encode()).hexdigest(), settings.preview_per_user_per_day
+    else:
+        key, limit = hashlib.sha256(f"{settings.preview_salt}|{client_ip(request)}".encode()).hexdigest(), settings.preview_per_ip_per_day
+        await lock_user(db, "all", "preview")  # makes the global daily cap exact
+        if (await db.scalar(select(func.coalesce(func.sum(PreviewUsage.count), 0)).where(PreviewUsage.day == today))) >= settings.preview_daily_cap:
+            await db.rollback()
+            return "Free previews are busy today. Create a free account for your monthly full audit."
     taken = await db.scalar(
-        pg_insert(PreviewUsage).values(ip_hash=ip_hash, day=today, count=1)
+        pg_insert(PreviewUsage).values(ip_hash=key, day=today, count=1)
         .on_conflict_do_update(
             index_elements=["ip_hash", "day"], set_={"count": PreviewUsage.count + 1},
-            where=PreviewUsage.count < settings.preview_per_ip_per_day,
+            where=PreviewUsage.count < limit,
         )
         .returning(PreviewUsage.count)
     )
     if taken is None:
         await db.rollback()
+        if user:
+            return "You've used today's quick previews. Add the site in your dashboard to run full audits and daily checks."
         return "You've used today's free previews. Create a free account for a full audit every month."
     await db.commit()
     return None
@@ -130,9 +137,10 @@ async def health():
 
 
 @app.get("/api/audit/stream")
-async def audit_stream(request: Request, url: str = Query(min_length=3, max_length=2048), db: AsyncSession = Depends(get_session)):
-    """Anonymous preview: a light check (no Speed, browser, traffic or AI probes), not saved, a few per day."""
-    refused = await _take_preview(db, request)
+async def audit_stream(request: Request, url: str = Query(min_length=3, max_length=2048), db: AsyncSession = Depends(get_session),
+                       user: User | None = Depends(optional_user)):
+    """Public preview: a light check (no Speed, browser, traffic or AI probes), not saved, a few per day."""
+    refused = await _take_preview(db, request, user)
 
     async def events():
         if refused:
@@ -147,8 +155,8 @@ async def audit_stream(request: Request, url: str = Query(min_length=3, max_leng
 
 
 @app.post("/api/audit")
-async def audit(body: AuditRequest, request: Request, db: AsyncSession = Depends(get_session)):
-    if refused := await _take_preview(db, request):
+async def audit(body: AuditRequest, request: Request, db: AsyncSession = Depends(get_session), user: User | None = Depends(optional_user)):
+    if refused := await _take_preview(db, request, user):
         raise HTTPException(429, refused)
     async for event in run_audit(body.url, mode="light"):
         if event["type"] == "error":

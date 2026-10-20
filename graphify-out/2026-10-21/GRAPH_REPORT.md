@@ -1,17 +1,17 @@
 # Graph Report - neww  (2026-10-21)
 
 ## Corpus Check
-- 221 files · ~196,139 words
+- 221 files · ~196,426 words
 - Verdict: corpus is large enough that graph structure adds value.
 - Unclassified: 24 file(s) not represented in the graph (top: (none) 12, .excalidraw 5, .example 2)
 
 ## Summary
-- 2137 nodes · 5410 edges · 100 communities (89 shown, 11 thin omitted)
-- Extraction: 93% EXTRACTED · 7% INFERRED · 0% AMBIGUOUS · INFERRED: 381 edges (avg confidence: 0.91)
+- 2140 nodes · 5425 edges · 104 communities (95 shown, 9 thin omitted)
+- Extraction: 93% EXTRACTED · 7% INFERRED · 0% AMBIGUOUS · INFERRED: 383 edges (avg confidence: 0.91)
 - Token cost: 0 input · 0 output
 
 ## Graph Freshness
-- Built from commit: `47f8c817`
+- Built from commit: `1308dc33`
 - Run `git rev-parse HEAD` and compare to check if the graph is stale.
 - Run `graphify update .` after code changes (no API cost).
 
@@ -23,7 +23,7 @@
 - test_http_security.py
 - features/page.tsx
 - jobs.py
-- storage.py
+- config.py
 - Fix Snippet Generators
 - AI Fixes & Prioritization
 - Root Layout & Feature Demos
@@ -41,8 +41,8 @@
 - sheets.py
 - credits.py
 - geo.py
-- api.ts
-- security.py
+- audit-view.tsx
+- Rankwise security hardening report
 - schema.py
 - billing.py
 - TypeScript Config
@@ -51,10 +51,10 @@
 - RankwiseFilm.tsx
 - content.py
 - App Shell & Nav
-- lucide-react
+- ref_react
 - test_feedback.py
 - config.py
-- payments.py
+- site-pages.tsx
 - monitoring.tsx
 - route.ts
 - compilerOptions
@@ -86,8 +86,8 @@
 - HyperFrames Composition Project
 - HyperFrames Composition Project
 - auth.ts
-- asyncio
-- Rankwise security hardening report
+- json
+- sqlalchemy
 - AuthForm
 - next.config.ts
 - billing.py
@@ -99,8 +99,8 @@
 - conftest.py
 - feedback.e2e.mjs
 - dependencies
-- _take_preview
-- rewrite
+- charts.tsx
+- content.py
 - hero-preview.tsx
 - page.py
 - charts.tsx
@@ -108,18 +108,22 @@
 - receipt-printer.tsx
 - background-paths.tsx
 - ai-rewrite.tsx
-- test_deploy.py
-- Settings
-- hero-video-dialog.tsx
+- apiFetch
+- api.ts
+- plans.py
 - FeedbackIn
+- FakeS3
+- audits
 - FakeGoogle
+- dotted-map.tsx
+- (marketing)/feedback/page.tsx
 - filters
-- InsufficientCredits
+- badge.tsx
 
 ## God Nodes (most connected - your core abstractions)
 1. `Site` - 53 edges
-2. `next` - 52 edges
-3. `make_user()` - 51 edges
+2. `make_user()` - 52 edges
+3. `next` - 52 edges
 4. `Page` - 38 edges
 5. `login()` - 31 edges
 6. `cn()` - 29 edges
@@ -149,87 +153,87 @@
 - **Database setup order: Better Auth tables then Alembic migrations** — deploy_better_auth_migration, deploy_alembic_upgrade_head, docker_compose_api_service, deploy_neon_postgres [INFERRED 0.85]
 - **create-next-app default public assets** — frontend_public_file_document_icon, frontend_public_globe_globe_icon, frontend_public_next_nextjs_logo, frontend_public_vercel_vercel_logo, frontend_public_window_browser_window_icon [INFERRED 0.95]
 
-## Communities (100 total, 11 thin omitted)
+## Communities (104 total, 9 thin omitted)
 
 ### Community 0 - "payments.py"
-Cohesion: 0.16
-Nodes (10): _hmac(), verify_order_signature(), verify_payment_signature(), verify_webhook_signature(), secrets(), _sig(), test_checkout_signature_accepts_genuine(), test_checkout_signature_rejects_swapped_ids() (+2 more)
+Cohesion: 0.08
+Nodes (21): cancel_subscription(), create_order(), create_plan(), create_subscription(), fetch_payment(), _hmac(), list_plans(), PaymentsError (+13 more)
 
 ### Community 1 - "Monitoring API Routes"
 Cohesion: 0.12
-Nodes (27): AlertOut, alerts(), audit_now(), audit_report(), AuditNowIn, AuditPoint, check_now(), delete_deploy_hook() (+19 more)
+Nodes (24): module_score(), AlertOut, alerts(), audit_now(), audit_report(), AuditNowIn, AuditPoint, check_now() (+16 more)
 
 ### Community 2 - "Deployment & Hosting Docs"
 Cohesion: 0.07
 Nodes (37): Rankwise API (HF Space, sdk: docker, app_port 8000), alembic 1.14.0, apscheduler 3.11.0, fastapi 0.115.6, httpx + beautifulsoup4 + lxml, playwright 1.49.1, SQLAlchemy asyncio + asyncpg, alembic upgrade head on container start (+29 more)
 
 ### Community 3 - "sites.py"
-Cohesion: 0.13
-Nodes (10): clean_domain(), create_site(), delete_site(), get_site(), list_sites(), _out(), SiteIn, SiteOut (+2 more)
+Cohesion: 0.12
+Nodes (12): lock_user(), revoke_pack(), clean_domain(), create_site(), delete_site(), get_site(), list_sites(), _out() (+4 more)
 
 ### Community 4 - "test_http_security.py"
-Cohesion: 0.14
-Nodes (22): AiRewrite, login(), _api_routes(), client(), _site_routes(), test_cookie_writes_need_a_trusted_origin(), test_cors_allows_only_listed_origins_without_credentials(), test_crawled_links_keep_only_http_urls() (+14 more)
+Cohesion: 0.11
+Nodes (20): AiRewrite, _api_routes(), client(), fake_llm(), fake_rewrite(), _site_routes(), test_cookie_writes_need_a_trusted_origin(), test_cors_allows_only_listed_origins_without_credentials() (+12 more)
 
 ### Community 5 - "features/page.tsx"
-Cohesion: 0.15
-Nodes (12): FeaturesPage(), metadata, ORDER, StatusTag(), FeaturesOverview(), VISUALS, Chapter, CHAPTERS (+4 more)
+Cohesion: 0.14
+Nodes (16): FeaturesPage(), metadata, ORDER, FeatureBento(), StatusTag(), Tile(), FeaturesOverview(), ASKS (+8 more)
 
 ### Community 6 - "jobs.py"
-Cohesion: 0.09
-Nodes (22): add(), checks_today(), claim(), enqueue(), enqueue_check(), finish(), handle_audit(), handle_check() (+14 more)
+Cohesion: 0.07
+Nodes (32): add(), checks_today(), claim(), enqueue(), enqueue_check(), finish(), handle_audit(), handle_check() (+24 more)
 
-### Community 7 - "storage.py"
-Cohesion: 0.17
-Nodes (11): bucket_configured(), _client(), _get(), load_shot(), _put(), save_shot(), FakeS3, exceptions (+3 more)
+### Community 7 - "config.py"
+Cohesion: 0.13
+Nodes (11): _list(), _production(), bucket_configured(), _client(), _get(), load_shot(), _put(), save_shot() (+3 more)
 
 ### Community 8 - "Fix Snippet Generators"
-Cohesion: 0.16
-Nodes (28): SiteFiles, _ai_crawlers(), _breadcrumbs(), _canonical(), _clean_url(), _clip(), _description(), _faq() (+20 more)
+Cohesion: 0.19
+Nodes (24): _ai_crawlers(), _breadcrumbs(), _canonical(), _clean_url(), _clip(), _description(), _faq(), _favicon() (+16 more)
 
 ### Community 9 - "AI Fixes & Prioritization"
-Cohesion: 0.12
-Nodes (21): snippet_for(), first_json_object(), annotate(), severity(), _options(), _prompt(), aeo(), chk() (+13 more)
+Cohesion: 0.16
+Nodes (18): snippet_for(), Check, annotate(), severity(), _prompt(), _enrich(), chk(), _jsonld_body() (+10 more)
 
 ### Community 10 - "Root Layout & Feature Demos"
 Cohesion: 0.09
 Nodes (19): googleSans, interTight, jetbrains, metadata, RootLayout(), viewport, BARS, BOTS (+11 more)
 
 ### Community 11 - "scoring.ts"
-Cohesion: 0.11
-Nodes (36): EASE, ModuleHeader(), ReportPanel(), STAGES, Tab, TABS, UNAVAILABLE, ScoreGauge() (+28 more)
+Cohesion: 0.16
+Nodes (22): ProjectionBars(), Group(), OpportunityPlan(), VALUE, Candidate, ScoreSimulator(), SCORED_MODULES, cumulative() (+14 more)
 
 ### Community 12 - "test_payments.py"
-Cohesion: 0.22
-Nodes (17): client(), hook(), _monthly(), razorpay(), _sig(), sub_entity(), subscribed(), test_charged_grants_once_even_for_duplicate_and_concurrent_deliveries() (+9 more)
+Cohesion: 0.18
+Nodes (20): BillingEvent, Subscription, client(), hook(), _monthly(), razorpay(), _sig(), sub_entity() (+12 more)
 
 ### Community 13 - "Frontend Tooling Config"
-Cohesion: 0.08
-Nodes (22): eslintConfig, lucide-react, react, react-dom, @types/react, typescript, name, private (+14 more)
+Cohesion: 0.07
+Nodes (25): eslintConfig, lucide-react, react, react-dom, @types/react, typescript, name, private (+17 more)
 
 ### Community 14 - "feedback-form.tsx"
 Cohesion: 0.10
-Nodes (27): FeedbackPage(), metadata, Draft, FeedbackForm(), noSubscribe(), posthogEnabled, Status, blank() (+19 more)
+Nodes (26): Draft, newId(), posthogEnabled, Progress(), readDraft(), Status, Thanks(), blank() (+18 more)
 
 ### Community 15 - "EgressProxy"
-Cohesion: 0.07
-Nodes (23): EgressProxy, _pipe(), _split_host_port(), events(), _sse(), fake_dns(), Internal, _send() (+15 more)
+Cohesion: 0.05
+Nodes (28): EgressProxy, _pipe(), _split_host_port(), audit(), audit_stream(), events(), health(), screenshot() (+20 more)
 
 ### Community 16 - "Feedback"
 Cohesion: 0.19
 Nodes (11): _csv_cell(), export_feedback(), feedback_detail(), feedback_stats(), top(), Filters, list_feedback(), _row() (+3 more)
 
 ### Community 17 - "next"
-Cohesion: 0.14
-Nodes (23): ContactPage(), metadata, TOPICS, CookiesPage(), metadata, SECTIONS, STORED, metadata (+15 more)
+Cohesion: 0.15
+Nodes (21): ContactPage(), metadata, TOPICS, CookiesPage(), metadata, SECTIONS, STORED, metadata (+13 more)
 
 ### Community 18 - "Issue Diffs & Regressions"
-Cohesion: 0.13
-Nodes (15): is_broken(), diff_issues(), fingerprints(), IssueDiff, next_run(), regressions(), check(), report() (+7 more)
+Cohesion: 0.15
+Nodes (14): is_broken(), diff_issues(), IssueDiff, next_run(), regressions(), check(), report(), test_broken_link_rules() (+6 more)
 
 ### Community 19 - "types.ts"
-Cohesion: 0.18
-Nodes (16): SplitDonut(), bandRange(), Card(), GeoExtras(), PerformanceExtras(), SeoExtras(), TrafficPanel(), Box (+8 more)
+Cohesion: 0.20
+Nodes (15): SplitDonut(), AeoExtras(), bandRange(), Card(), GeoExtras(), SeoExtras(), TrafficPanel(), Box (+7 more)
 
 ### Community 20 - "shadcn Components Config"
 Cohesion: 0.09
@@ -245,27 +249,27 @@ Nodes (9): _access_token(), _account(), _append(), _b64(), _human(), _range(), r
 
 ### Community 23 - "credits.py"
 Cohesion: 0.12
-Nodes (31): balance(), Balance, capture(), ensure_monthly_grant(), grant(), _ledger(), _month_bounds(), _now() (+23 more)
+Nodes (26): balance(), Balance, capture(), ensure_monthly_grant(), grant(), InsufficientCredits, _ledger(), _month_bounds() (+18 more)
 
 ### Community 24 - "geo.py"
-Cohesion: 0.13
-Nodes (21): analyze_aeo(), _answer_lengths(), overall_score(), score_checks(), summarize(), make_client(), AuditReport, AuditRequest (+13 more)
+Cohesion: 0.12
+Nodes (21): analyze_accessibility(), analyze_aeo(), _answer_lengths(), overall_score(), score_checks(), SiteFiles, summarize(), analyze_geo() (+13 more)
 
-### Community 25 - "api.ts"
-Cohesion: 0.13
-Nodes (15): AuditPage(), metadata, AuditRun(), AuditView(), ProgressLog(), Sidebar(), posthogEnabled, UrlForm() (+7 more)
+### Community 25 - "audit-view.tsx"
+Cohesion: 0.14
+Nodes (20): AuditPage(), metadata, AuditRun(), AuditView(), EASE, ModuleHeader(), ProgressLog(), ReportPanel() (+12 more)
 
-### Community 26 - "security.py"
-Cohesion: 0.13
-Nodes (4): BodyLimit, _has_session(), OriginCheck, SecurityHeaders
+### Community 26 - "Rankwise security hardening report"
+Cohesion: 0.06
+Nodes (21): Settings, BodyLimit, _has_session(), OriginCheck, SecurityHeaders, _prod(), test_production_settings_fail_closed(), 10. Manual actions, in priority order (+13 more)
 
 ### Community 27 - "schema.py"
-Cohesion: 0.11
-Nodes (18): prune_old_data(), AiPrompt, AiRun, Alert, ApiRate, Audit, AuthSession, Base (+10 more)
+Cohesion: 0.14
+Nodes (11): AiPrompt, AiRun, ApiRate, AuthSession, Base, Competitor, CreditLedger, Event (+3 more)
 
 ### Community 28 - "billing.py"
-Cohesion: 0.11
-Nodes (33): configured(), ts(), current_subscription(), _apply(), billing(), BillingOut, cancel(), change_plan() (+25 more)
+Cohesion: 0.10
+Nodes (32): configured(), fetch_subscription(), current_subscription(), _apply(), billing(), BillingOut, cancel(), change_plan() (+24 more)
 
 ### Community 29 - "TypeScript Config"
 Cohesion: 0.11
@@ -276,24 +280,24 @@ Cohesion: 0.14
 Nodes (35): BARS, DASH_H, DASH_W, Dashboard(), FilterChips(), IssueRow(), ISSUES, NAV (+27 more)
 
 ### Community 31 - "auth-recovery.tsx"
-Cohesion: 0.16
-Nodes (22): ForgotPasswordPage(), metadata, metadata, ResetPasswordPage(), metadata, TwoFactorPage(), Field(), AuthError (+14 more)
+Cohesion: 0.15
+Nodes (22): ForgotPasswordPage(), metadata, metadata, ResetPasswordPage(), metadata, TwoFactorPage(), fieldClass, AuthError (+14 more)
 
 ### Community 32 - "RankwiseFilm.tsx"
 Cohesion: 0.19
 Nodes (15): Atmosphere(), Grade(), Grain(), FILM_DURATION, RankwiseFilm(), ROWS, Sfx(), shot() (+7 more)
 
 ### Community 33 - "content.py"
-Cohesion: 0.09
-Nodes (21): _network_guard(), guard(), _assert_public_host(), AuditError, check_status(), fetch(), fetch_optional(), FetchResult (+13 more)
+Cohesion: 0.08
+Nodes (24): _network_guard(), guard(), _assert_public_host(), AuditError, check_status(), fetch(), fetch_optional(), FetchResult (+16 more)
 
 ### Community 34 - "App Shell & Nav"
 Cohesion: 0.13
-Nodes (17): AppLayout(), metadata, posthogEnabled, AppShell(), identifyUser(), posthogEnabled, Sidebar(), SITE_NAV (+9 more)
+Nodes (18): AppLayout(), metadata, AppShell(), identifyUser(), posthogEnabled, Sidebar(), SITE_NAV, SiteMark() (+10 more)
 
-### Community 35 - "lucide-react"
-Cohesion: 0.10
-Nodes (22): LoaderProps, RINGS, SIZE_CONFIG, Badge(), BadgeProps, badgeVariants, Button, ButtonProps (+14 more)
+### Community 35 - "ref_react"
+Cohesion: 0.12
+Nodes (12): posthogEnabled, LoaderProps, RINGS, SIZE_CONFIG, AnimationStyle, animationVariants, HeroVideoProps, Circle (+4 more)
 
 ### Community 36 - "test_feedback.py"
 Cohesion: 0.21
@@ -301,15 +305,15 @@ Nodes (17): admins(), client(), make_admin(), payload(), test_admin_lists_filter
 
 ### Community 37 - "config.py"
 Cohesion: 0.11
-Nodes (9): do_run_migrations(), include_object(), run_async_migrations(), run_migrations_offline(), run_migrations_online(), _list(), _production(), Entitlements (+1 more)
+Nodes (11): do_run_migrations(), include_object(), run_async_migrations(), run_migrations_offline(), run_migrations_online(), async_db_url(), test_embedded_worker_runs_with_the_app_and_stops_on_shutdown(), fake_loop() (+3 more)
 
-### Community 38 - "payments.py"
-Cohesion: 0.14
-Nodes (11): cancel_subscription(), create_order(), create_plan(), create_subscription(), fetch_payment(), fetch_subscription(), list_plans(), PaymentsError (+3 more)
+### Community 38 - "site-pages.tsx"
+Cohesion: 0.15
+Nodes (16): AppHome(), SitePage(), byPriority(), HistoryChart(), AddSiteForm(), CADENCES, FixFirst(), posthogEnabled (+8 more)
 
 ### Community 39 - "monitoring.tsx"
-Cohesion: 0.07
-Nodes (55): AppHome(), Issues(), metadata, Links(), metadata, metadata, Monitoring(), SitePage() (+47 more)
+Cohesion: 0.10
+Nodes (28): Issues(), metadata, Links(), metadata, metadata, Monitoring(), ALERT_ICON, BeforeAfter() (+20 more)
 
 ### Community 40 - "route.ts"
 Cohesion: 0.20
@@ -320,36 +324,36 @@ Cohesion: 0.14
 Nodes (13): compilerOptions, esModuleInterop, forceConsistentCasingInFileNames, jsx, lib, module, moduleResolution, noEmit (+5 more)
 
 ### Community 42 - "make_user"
-Cohesion: 0.20
-Nodes (21): make_site(), make_user(), audits(), fake_audit_once(), client(), fake_report(), _jobs(), test_anonymous_preview_is_light_capped_and_ignores_spoofed_ips() (+13 more)
+Cohesion: 0.25
+Nodes (21): login(), make_site(), make_user(), client(), _jobs(), test_anonymous_preview_is_light_capped_and_ignores_spoofed_ips(), test_audit_jobs_without_a_valid_reservation_never_run_a_full_audit(), test_billing_shows_credits_usage_and_light_checks() (+13 more)
 
 ### Community 43 - "pricing/page.tsx"
-Cohesion: 0.19
-Nodes (18): FAQS, metadata, PricingPage(), Cell(), CompareTable(), CurrencyToggle(), onKeyDown(), getServerSnapshot() (+10 more)
+Cohesion: 0.14
+Nodes (23): FAQS, metadata, PricingPage(), Cell(), CompareTable(), CurrencyToggle(), onKeyDown(), getServerSnapshot() (+15 more)
 
 ### Community 44 - "Dev Dependencies"
 Cohesion: 0.18
 Nodes (11): devDependencies, eslint, eslint-config-next, tailwindcss, @tailwindcss/turbopack, @types/node, @types/pg, @types/react (+3 more)
 
 ### Community 45 - "account.tsx"
-Cohesion: 0.22
-Nodes (17): Account(), metadata, AccountPage(), AuthError, ChangePassword(), submit(), explain(), Message() (+9 more)
+Cohesion: 0.21
+Nodes (18): Account(), metadata, AccountPage(), AuthError, ChangePassword(), submit(), explain(), Message() (+10 more)
 
 ### Community 46 - "NPM Scripts"
 Cohesion: 0.25
 Nodes (8): scripts, build, cf:build, cf:deploy, cf:preview, dev, lint, start
 
 ### Community 47 - "site-header.tsx"
-Cohesion: 0.21
-Nodes (12): AuthLayout(), MarketingLayout(), AuthShowcase(), MODULES, POINTS, RevealObserver(), SiteFooter(), Logo() (+4 more)
+Cohesion: 0.20
+Nodes (14): AuthLayout(), MarketingLayout(), AuthShowcase(), MODULES, POINTS, RevealObserver(), NAV, SiteFooter() (+6 more)
 
 ### Community 48 - "Next.js Starter Assets"
 Cohesion: 0.33
 Nodes (6): File/Document Icon (file.svg), Globe Icon (globe.svg), create-next-app Starter Assets, Next.js Wordmark Logo (next.svg), Vercel Triangle Logo (vercel.svg), Browser Window Icon (window.svg)
 
 ### Community 49 - "feedback-admin.tsx"
-Cohesion: 0.13
-Nodes (24): dateFmt, dateTimeFmt, Detail(), fmt(), Load, OutOf(), Requests(), Skeleton() (+16 more)
+Cohesion: 0.11
+Nodes (26): dateFmt, dateTimeFmt, Detail(), fmt(), Load, OutOf(), Requests(), Skeleton() (+18 more)
 
 ### Community 50 - "profile-dropdown.tsx"
 Cohesion: 0.09
@@ -364,12 +368,12 @@ Cohesion: 0.16
 Nodes (11): AdminFeedback(), metadata, ErrorBox(), errorMessage(), FeedbackAdmin(), Filters(), useDebounced(), exportUrl() (+3 more)
 
 ### Community 58 - "STEPS"
-Cohesion: 0.21
-Nodes (13): newId(), Progress(), readDraft(), saveDraft(), STEPS, focusFirstError(), go(), next() (+5 more)
+Cohesion: 0.35
+Nodes (9): saveDraft(), STEPS, focusFirstError(), go(), next(), onSubmit(), submit(), submitFeedback() (+1 more)
 
 ### Community 59 - "make-sfx.mjs"
-Cohesion: 0.15
-Nodes (14): path, { points }, r(), rows, sorted, svg-dotted-map, buffer(), finish() (+6 more)
+Cohesion: 0.16
+Nodes (13): path, { points }, r(), rows, sorted, buffer(), finish(), impact() (+5 more)
 
 ### Community 60 - "hyperframes.json"
 Cohesion: 0.18
@@ -393,15 +397,15 @@ Nodes (8): name, private, scripts, check, dev, publish, render, type
 
 ### Community 65 - "(marketing)/page.tsx"
 Cohesion: 0.16
-Nodes (24): Chapter(), ENGINES, FAQS, Home(), SampleTag(), STEPS, A11yVisual(), ChapterHead() (+16 more)
+Nodes (22): Chapter(), ENGINES, FAQS, Home(), SampleTag(), STEPS, AuditConsole(), A11yVisual() (+14 more)
 
 ### Community 66 - "billing.tsx"
-Cohesion: 0.07
-Nodes (35): Billing(), metadata, BillingPage(), buyPack(), changePlan(), upgrade(), waitForActivation(), CheckoutSuccess (+27 more)
+Cohesion: 0.09
+Nodes (26): Billing(), metadata, BillingPage(), buyPack(), changePlan(), upgrade(), waitForActivation(), CheckoutSuccess (+18 more)
 
 ### Community 67 - "action-search-bar.tsx"
-Cohesion: 0.15
-Nodes (24): Action, ActionSearchBar(), ActionSearchBarProps, buildSections(), CommandItem, Entry, findEntry(), flatten() (+16 more)
+Cohesion: 0.16
+Nodes (23): Action, ActionSearchBar(), ActionSearchBarProps, buildSections(), Entry, findEntry(), flatten(), fuzzyMatch() (+15 more)
 
 ### Community 68 - "HyperFrames Composition Project"
 Cohesion: 0.25
@@ -415,25 +419,25 @@ Nodes (7): Commands, Documentation, HyperFrames Composition Project, Key Rules, 
 Cohesion: 0.22
 Nodes (12): auth, emailOf(), pool, sendLater(), signinKey(), signinWindow(), emailEnabled, Message (+4 more)
 
-### Community 71 - "asyncio"
-Cohesion: 0.11
-Nodes (7): analyze_accessibility(), _visibility_probes(), _browser_path(), _plain(), run_local_lighthouse(), main(), _migrate()
+### Community 71 - "json"
+Cohesion: 0.20
+Nodes (5): _browser_path(), from_lighthouse(), _plain(), run_local_lighthouse(), main()
 
-### Community 72 - "Rankwise security hardening report"
-Cohesion: 0.14
-Nodes (13): 10. Manual actions, in priority order, 11. Open items, 12. Before deploying, 1. Executive summary, 2. Stack, 3–4. Findings and fixes, 5. Files, 6. Database changes (+5 more)
+### Community 72 - "sqlalchemy"
+Cohesion: 0.17
+Nodes (5): upgrade(), upgrade(), upgrade(), upgrade(), upgrade()
 
 ### Community 73 - "AuthForm"
-Cohesion: 0.17
-Nodes (14): LoginPage(), metadata, metadata, SignupPage(), AuthForm(), submit(), describe(), fieldClass (+6 more)
+Cohesion: 0.20
+Nodes (13): LoginPage(), metadata, metadata, SignupPage(), AuthForm(), submit(), describe(), Field() (+5 more)
 
 ### Community 74 - "next.config.ts"
 Cohesion: 0.40
 Nodes (3): apiOrigin, csp, nextConfig
 
 ### Community 75 - "billing.py"
-Cohesion: 0.06
-Nodes (21): upgrade(), upgrade(), upgrade(), upgrade(), upgrade(), admin_user(), current_user(), is_admin() (+13 more)
+Cohesion: 0.08
+Nodes (14): admin_user(), current_user(), is_admin(), owned_site(), _session_token(), get_session(), lifespan(), client_ip() (+6 more)
 
 ### Community 76 - "animated-badge.tsx"
 Cohesion: 0.67
@@ -448,8 +452,12 @@ Cohesion: 0.29
 Nodes (8): enabled(), sync_pending(), submit(), test_disabled_without_configuration(), test_existing_header_is_not_repeated(), test_failed_copy_is_retried_later(), test_rows_are_copied_once_with_a_header(), test_submitting_queues_a_sync()
 
 ### Community 80 - "test_verification.py"
-Cohesion: 0.30
-Nodes (9): module_score(), verify_outcome(), report(), test_fixed_when_the_check_no_longer_applies(), test_fixed_when_the_check_now_passes(), test_info_counts_as_fixed(), test_module_score(), test_still_failing_on_warn_or_fail() (+1 more)
+Cohesion: 0.38
+Nodes (8): verify_outcome(), report(), test_fixed_when_the_check_no_longer_applies(), test_fixed_when_the_check_now_passes(), test_info_counts_as_fixed(), test_module_score(), test_still_failing_on_warn_or_fail(), test_unmeasured_when_the_module_could_not_run()
+
+### Community 81 - "conftest.py"
+Cohesion: 0.29
+Nodes (6): db(), session_factory(), test_parallel_reserves_never_overspend(), attempt(), test_parallel_retries_with_one_key_charge_once(), attempt()
 
 ### Community 82 - "feedback.e2e.mjs"
 Cohesion: 0.14
@@ -459,53 +467,73 @@ Nodes (4): results, pages, results, playwright
 Cohesion: 0.22
 Nodes (9): dependencies, lucide-react, react, react-dom, remotion, @remotion/cli, @remotion/google-fonts, @remotion/media (+1 more)
 
-### Community 84 - "_take_preview"
+### Community 84 - "charts.tsx"
 Cohesion: 0.23
-Nodes (5): audit(), audit_stream(), health(), screenshot(), _take_preview()
+Nodes (14): ChartTip(), ChecksByModule(), COLOR, PositionsChart(), rowOf(), SEVERITIES, Severity, SeverityDonut() (+6 more)
 
-### Community 85 - "rewrite"
-Cohesion: 0.15
-Nodes (10): chat(), _current(), _first_question(), rewrite(), _rewrite(), RewriteIn, RewriteOption, RewriteOut (+2 more)
+### Community 85 - "content.py"
+Cohesion: 0.13
+Nodes (15): make_client(), _visibility_probes(), chat(), first_json_object(), _current(), _first_question(), _month_start(), _options() (+7 more)
 
 ### Community 86 - "hero-preview.tsx"
-Cohesion: 0.24
-Nodes (9): BARS, HeroPreview(), ISSUES, NAV, Priority(), AuditConsole(), LINES, MODULES (+1 more)
+Cohesion: 0.22
+Nodes (10): BARS, HeroPreview(), ISSUES, NAV, Priority(), LINES, MODULES, CountUp() (+2 more)
 
 ### Community 87 - "page.py"
-Cohesion: 0.22
+Cohesion: 0.21
 Nodes (6): crawl_links(), check(), LinkResult, _flatten_jsonld(), parse_page(), _types()
 
 ### Community 88 - "charts.tsx"
-Cohesion: 0.10
-Nodes (33): ChartTip(), ChecksByModule(), COLOR, PositionsChart(), ProjectionBars(), rowOf(), SEVERITIES, Severity (+25 more)
+Cohesion: 0.16
+Nodes (18): narrative(), ReportCover(), Ring(), ScoreScale(), STATIONS, STATUS_COLOR, STATUS_WORD, TONE_COLOR (+10 more)
 
 ### Community 89 - "faq-section.tsx"
-Cohesion: 0.31
-Nodes (8): splitTitle(), AccordionContent, AccordionItem, AccordionTrigger, FAQ(), FAQItem, FAQProps, @radix-ui/react-accordion
+Cohesion: 0.30
+Nodes (8): AccordionContent, AccordionItem, AccordionTrigger, Button, ButtonProps, buttonVariants, FAQ(), FAQProps
 
 ### Community 90 - "receipt-printer.tsx"
-Cohesion: 0.23
-Nodes (10): BARS, damp(), DEFAULT_ITEMS, haptic(), Phase, Receipt(), ReceiptItem, ReceiptPrinter() (+2 more)
+Cohesion: 0.15
+Nodes (16): Receipt, ReceiptDialog(), stamp, SYMBOL, BARS, damp(), DEFAULT_ITEMS, haptic() (+8 more)
 
 ### Community 91 - "background-paths.tsx"
 Cohesion: 0.22
 Nodes (12): BackgroundPaths(), BackgroundPathsProps, DefaultContent(), drawLines(), EASE_OUT(), Frame, Layer, LAYERS (+4 more)
 
 ### Community 92 - "ai-rewrite.tsx"
-Cohesion: 0.13
-Nodes (21): AiRewrite(), run(), bare(), CopyText(), Field, FIELD_LABEL, REWRITE_FIELD, RewriteResult (+13 more)
+Cohesion: 0.11
+Nodes (23): AiRewrite(), run(), bare(), CopyText(), Field, FIELD_LABEL, REWRITE_FIELD, RewriteResult (+15 more)
 
-### Community 93 - "test_deploy.py"
-Cohesion: 0.24
-Nodes (6): async_db_url(), test_embedded_worker_runs_with_the_app_and_stops_on_shutdown(), fake_loop(), test_neon_url_becomes_asyncpg_with_ssl(), test_no_embedded_worker_by_default(), test_other_url_shapes()
+### Community 93 - "apiFetch"
+Cohesion: 0.27
+Nodes (10): SiteSettingsPage(), AlertsBell(), markRead(), useApi(), DeployHookCard(), remove(), SiteSettings(), remove() (+2 more)
 
-### Community 94 - "Settings"
+### Community 94 - "api.ts"
+Cohesion: 0.31
+Nodes (7): posthogEnabled, UrlForm(), submit(), API_URL, cleanUrl(), EVENT_TYPES, AuditEvent
+
+### Community 95 - "plans.py"
+Cohesion: 0.29
+Nodes (3): entitled_subscription(), Entitlements, Pack
+
+### Community 97 - "FakeS3"
+Cohesion: 0.29
+Nodes (3): FakeS3, exceptions, NoSuchKey
+
+### Community 98 - "audits"
 Cohesion: 0.33
-Nodes (4): Settings, _prod(), test_production_settings_fail_closed(), Medium
+Nodes (4): audits(), fake_audit_once(), fake_report(), fake_run_audit()
 
-### Community 95 - "hero-video-dialog.tsx"
-Cohesion: 0.40
-Nodes (4): AnimationStyle, animationVariants, HeroVideoProps, motion
+### Community 100 - "dotted-map.tsx"
+Cohesion: 0.33
+Nodes (5): DottedMap(), DottedMapProps, MapMarker, Marker, svg-dotted-map
+
+### Community 101 - "(marketing)/feedback/page.tsx"
+Cohesion: 0.50
+Nodes (4): FeedbackPage(), metadata, FeedbackForm(), noSubscribe()
+
+### Community 103 - "badge.tsx"
+Cohesion: 0.50
+Nodes (4): Badge(), BadgeProps, badgeVariants, class-variance-authority
 
 ## Ambiguous Edges - Review These
 - `Ira Analytics` → `Rankwise - SEO, AEO & GEO website audit`  [AMBIGUOUS]
@@ -513,24 +541,24 @@ Nodes (4): AnimationStyle, animationVariants, HeroVideoProps, motion
 
 ## Knowledge Gaps
 - **40 isolated node(s):** `@neon/env`, `axe-core`, `lucide-react`, `react`, `react-dom` (+35 more)
-  These have ≤1 connection - possible missing edges or undocumented components. (Counts symbols only; 744 node(s) total have ≤1 connection when file, concept and rationale nodes are included.)
-- **11 thin communities (<3 nodes) omitted from report** — run `graphify query` to explore isolated nodes.
+  These have ≤1 connection - possible missing edges or undocumented components. (Counts symbols only; 745 node(s) total have ≤1 connection when file, concept and rationale nodes are included.)
+- **9 thin communities (<3 nodes) omitted from report** — run `graphify query` to explore isolated nodes.
 
 ## Suggested Questions
 _Questions this graph is uniquely positioned to answer:_
 
-- **Why does `next` connect `next` to `features/page.tsx`, `Root Layout & Feature Demos`, `scoring.ts`, `Frontend Tooling Config`, `feedback-form.tsx`, `api.ts`, `auth-recovery.tsx`, `App Shell & Nav`, `monitoring.tsx`, `route.ts`, `pricing/page.tsx`, `account.tsx`, `site-header.tsx`, `FeedbackAdmin`, `(marketing)/page.tsx`, `billing.tsx`, `auth.ts`, `AuthForm`, `next.config.ts`, `animated-badge.tsx`, `better-auth`, `faq-section.tsx`, `ai-rewrite.tsx`?**
-  _High betweenness centrality (0.061) - this node is a cross-community bridge._
+- **Why does `next` connect `site-header.tsx` to `features/page.tsx`, `Root Layout & Feature Demos`, `Frontend Tooling Config`, `feedback-form.tsx`, `next`, `audit-view.tsx`, `auth-recovery.tsx`, `App Shell & Nav`, `ref_react`, `site-pages.tsx`, `monitoring.tsx`, `route.ts`, `pricing/page.tsx`, `account.tsx`, `FeedbackAdmin`, `(marketing)/page.tsx`, `billing.tsx`, `auth.ts`, `AuthForm`, `next.config.ts`, `animated-badge.tsx`, `better-auth`, `faq-section.tsx`, `ai-rewrite.tsx`, `api.ts`, `(marketing)/feedback/page.tsx`?**
+  _High betweenness centrality (0.062) - this node is a cross-community bridge._
 - **Are the 40 inferred relationships involving `Site` (e.g. with `owned_site()` and `checks_today()`) actually correct?**
   _`Site` has 40 INFERRED edges - model-reasoned connections that need verification._
 - **What connects `@neon/env`, `axe-core`, `lucide-react` to the rest of the system?**
   _40 weakly-connected nodes found - possible documentation gaps or missing edges._
-- **Should `Monitoring API Routes` be split into smaller, more focused modules?**
-  _Cohesion score 0.11522198731501057 - nodes in this community are weakly interconnected._
+- **Should `payments.py` be split into smaller, more focused modules?**
+  _Cohesion score 0.08205128205128205 - nodes in this community are weakly interconnected._
 - **Why does `remotion` connect `RankwiseLaunch.tsx` to `RankwiseFilm.tsx`, `video/package.json`, `scenes.tsx`?**
-  _High betweenness centrality (0.025) - this node is a cross-community bridge._
-- **Should `Deployment & Hosting Docs` be split into smaller, more focused modules?**
-  _Cohesion score 0.06747638326585695 - nodes in this community are weakly interconnected._
+  _High betweenness centrality (0.024) - this node is a cross-community bridge._
+- **Should `Monitoring API Routes` be split into smaller, more focused modules?**
+  _Cohesion score 0.11561561561561562 - nodes in this community are weakly interconnected._
 
 ### Low-confidence Hints
 _AMBIGUOUS edges — the extractor was unsure. Verify before acting on these._

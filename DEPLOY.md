@@ -98,7 +98,7 @@ Render reads `render.yaml` and asks for three values: `DATABASE_URL` (the Neon s
 `OPENROUTER_API_KEY`. Click **Apply**. The first build takes a few minutes; on start the container runs
 `alembic upgrade head`, which creates the rest of the tables.
 
-Check: <https://rankwise-api.onrender.com/api/health> should report the database as ok.
+Check: <https://ira-analytics.onrender.com/api/health> should report the database as ok.
 (If Render gave the service a different URL, update `PUBLIC_API_URL` in its Environment tab.)
 
 ### 5. Vercel (Project → Settings → Environment Variables → Production), then Redeploy
@@ -108,11 +108,11 @@ Check: <https://rankwise-api.onrender.com/api/health> should report the database
 | `DATABASE_URL` | the same Neon connection string |
 | `BETTER_AUTH_SECRET` | a new random secret (`openssl rand -base64 32`, or any 32+ random characters) |
 | `BETTER_AUTH_URL` | `https://rankwise-xi.vercel.app` |
-| `BACKEND_URL` | `https://rankwise-api.onrender.com` |
-| `NEXT_PUBLIC_API_URL` | `https://rankwise-api.onrender.com` |
+| `BACKEND_URL` | `https://ira-analytics.onrender.com` |
+| `NEXT_PUBLIC_API_URL` | `https://ira-analytics.onrender.com` |
 
 ### 6. Keep it awake (free)
-<https://cron-job.org> → new cron job → URL `https://rankwise-api.onrender.com/api/health`, every **10 minutes**.
+<https://cron-job.org> → new cron job → URL `https://ira-analytics.onrender.com/api/health`, every **10 minutes**.
 One always-on free service fits in Render's 750 free hours a month.
 
 ### 7. Check

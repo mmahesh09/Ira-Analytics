@@ -29,15 +29,25 @@ def _session_token(request: Request) -> str | None:
     return None
 
 
-async def current_user(request: Request, db: AsyncSession = Depends(get_session)) -> User:
-    token = _session_token(request)
-    if not token:
-        raise HTTPException(401, "Sign in to continue.")
-    user = await db.scalar(
+async def _session_user(db: AsyncSession, token: str) -> User | None:
+    return await db.scalar(
         select(User)
         .join(AuthSession, AuthSession.user_id == User.id)
         .where(AuthSession.token == token, AuthSession.expires_at > datetime.now(timezone.utc))
     )
+
+
+async def optional_user(request: Request, db: AsyncSession = Depends(get_session)) -> User | None:
+    """The signed-in user, or None for anonymous visitors (public endpoints apply their own limits)."""
+    token = _session_token(request)
+    return await _session_user(db, token) if token else None
+
+
+async def current_user(request: Request, db: AsyncSession = Depends(get_session)) -> User:
+    token = _session_token(request)
+    if not token:
+        raise HTTPException(401, "Sign in to continue.")
+    user = await _session_user(db, token)
     if not user:
         raise HTTPException(401, "Your session has expired. Sign in again.")
     # keyed on the account, not the session, so opening more sessions doesn't buy more requests

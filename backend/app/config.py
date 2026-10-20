@@ -61,6 +61,8 @@ class Settings:
     # anonymous preview audits (light checks, not saved), counted in Postgres per hashed IP per UTC day
     preview_per_ip_per_day: int = int(os.getenv("PREVIEW_PER_IP_PER_DAY", "2"))
     preview_daily_cap: int = int(os.getenv("PREVIEW_DAILY_CAP", "200"))
+    # signed-in users get their own daily allowance, keyed on the account and outside the anonymous cap
+    preview_per_user_per_day: int = int(os.getenv("PREVIEW_PER_USER_PER_DAY", "10"))
     preview_salt: str = os.getenv("PREVIEW_SALT", "")
     # accounts that may read product feedback (/api/admin/feedback); the account's email must also be verified
     admin_emails: frozenset[str] = field(default_factory=lambda: frozenset(e.lower() for e in _list("ADMIN_EMAILS", "")))

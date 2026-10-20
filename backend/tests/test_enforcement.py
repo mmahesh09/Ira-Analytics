@@ -243,3 +243,19 @@ async def test_anonymous_preview_is_light_capped_and_ignores_spoofed_ips(db, mon
         # behind one trusted proxy, the client can prepend anything, but the proxy's own entry is what counts
         spoofed = [(await c.post("/api/audit", json={"url": "example.com"}, headers={"X-Forwarded-For": f"1.1.1.{i}, 203.0.113.9"})).status_code for i in range(3)]
     assert spoofed == [200, 200, 429]
+
+
+async def test_signed_in_preview_has_its_own_allowance(db, monkeypatch):
+    async def fake_run_audit(url, use_cache=True, mode="full"):
+        yield {"type": "result", "report": fake_report(mode=mode).model_dump()}
+
+    monkeypatch.setattr(main, "run_audit", fake_run_audit)
+    patched = settings.__class__(**{**settings.__dict__, "trusted_proxy_hops": 0, "preview_per_user_per_day": 3})
+    monkeypatch.setattr(main, "settings", patched)
+    monkeypatch.setattr(ratelimit, "settings", patched)
+    async with client() as c:  # the anonymous visitor on this IP uses up their 2
+        anon = [(await c.post("/api/audit", json={"url": "example.com"})).status_code for _ in range(3)]
+    async with client(await login(db, await make_user(db))) as c:  # same IP, signed in: a separate, larger allowance
+        signed_in = [(await c.post("/api/audit", json={"url": "example.com"})).status_code for _ in range(4)]
+    assert anon == [200, 200, 429]
+    assert signed_in == [200, 200, 200, 429]

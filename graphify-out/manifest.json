@@ -24,9 +24,9 @@
     "semantic_hash": "7ab666c392c2b50e504eb1c2d16706f1"
   },
   "backend/app/auth.py": {
-    "mtime": 1792507124.0933988,
-    "seen": 1792508129.4237545,
-    "ast_hash": "ebfa5f5bbb437917dabb945547bda0dc",
+    "mtime": 1792532542.2110357,
+    "seen": 1792532788.7433786,
+    "ast_hash": "98a8bbc251cb3f989839d98c4c00f7d5",
     "semantic_hash": ""
   },
   "backend/app/common.py": {
@@ -36,9 +36,9 @@
     "semantic_hash": "2702533c760da9cee7f97005776a6191"
   },
   "backend/app/config.py": {
-    "mtime": 1792514966.5104563,
-    "seen": 1792515773.13232,
-    "ast_hash": "145fbeec889bae40615422701f6bc3a9",
+    "mtime": 1792532546.8292906,
+    "seen": 1792532788.744378,
+    "ast_hash": "7d471f38e4a07777a8d9879f49cb9d47",
     "semantic_hash": ""
   },
   "backend/app/crawler.py": {
@@ -84,9 +84,9 @@
     "semantic_hash": "5a3fde45d169b023a4bd519b6c2f78c2"
   },
   "backend/app/main.py": {
-    "mtime": 1792507675.9273255,
-    "seen": 1792508129.4349613,
-    "ast_hash": "3dc6005da2089eeb1adae9fd2650f3a5",
+    "mtime": 1792532597.93704,
+    "seen": 1792532788.7544317,
+    "ast_hash": "34b26586e1a4dd75208f4448d98ea370",
     "semantic_hash": ""
   },
   "backend/app/models.py": {
@@ -732,9 +732,9 @@
     "semantic_hash": "67d88e9d0760c3ba54c75dfd9551c1c5"
   },
   "DEPLOY.md": {
-    "mtime": 1792515721.084563,
-    "seen": 1792515773.3616202,
-    "ast_hash": "bb0c47707d8d5593817ba0f17de5b548",
+    "mtime": 1792532631.0943947,
+    "seen": 1792532788.9882429,
+    "ast_hash": "a8e4588ea140424c99b862fe34dafab5",
     "semantic_hash": ""
   },
   "README.md": {
@@ -774,9 +774,9 @@
     "semantic_hash": "f15aaa42d5d299d091b1171097ea56ad"
   },
   "render.yaml": {
-    "mtime": 1792515721.1323802,
-    "seen": 1792515773.3685224,
-    "ast_hash": "49b6a52e4f96b700c1299aad3d1aea48",
+    "mtime": 1792532638.8527012,
+    "seen": 1792532788.9966962,
+    "ast_hash": "fdd01b672ef4d8b98349261938ff6009",
     "semantic_hash": ""
   },
   "frontend/public/file.svg": {
@@ -852,9 +852,9 @@
     "semantic_hash": ""
   },
   "backend/tests/test_enforcement.py": {
-    "mtime": 1792487846.6472833,
-    "seen": 1792493938.4355319,
-    "ast_hash": "c64a4cf6504a4afa84d8ce5c0f2e0661",
+    "mtime": 1792532615.1159601,
+    "seen": 1792532788.7896695,
+    "ast_hash": "1bab0e0c1956738f8cc1b4cf0fa68513",
     "semantic_hash": ""
   },
   "backend/tests/test_payments.py": {

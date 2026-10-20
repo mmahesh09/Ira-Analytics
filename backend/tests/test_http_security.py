@@ -144,9 +144,19 @@ def test_ip_keys_never_hold_the_raw_ip():
 
 # ---------- authorization matrix ----------
 
+def _api_routes(routes):
+    """Every APIRoute, also inside included routers (newer FastAPI keeps them nested instead of flattening them;
+    the routers carry their own prefixes, so paths are complete either way)."""
+    for route in routes:
+        if isinstance(route, APIRoute):
+            yield route
+        elif nested := getattr(route, "original_router", None):
+            yield from _api_routes(nested.routes)
+
+
 def _site_routes():
-    for route in main.app.routes:
-        if isinstance(route, APIRoute) and "{site_id}" in route.path:
+    for route in _api_routes(main.app.routes):
+        if "{site_id}" in route.path:
             for method in route.methods - {"HEAD"}:
                 yield method, route.path
 

@@ -1,0 +1,22 @@
+# Weekly update PRs for dependencies with fixes, plus immediate security PRs (turn on "Dependabot security
+# updates" under Settings → Code security). Major versions arrive as separate PRs: review their changelogs.
+version: 2
+updates:
+  - package-ecosystem: pip
+    directory: /backend
+    schedule: { interval: weekly }
+    open-pull-requests-limit: 5
+    groups:
+      python-minor-patch: { update-types: [minor, patch] }
+  - package-ecosystem: npm
+    directory: /frontend
+    schedule: { interval: weekly }
+    open-pull-requests-limit: 5
+    groups:
+      npm-minor-patch: { update-types: [minor, patch] }
+  - package-ecosystem: github-actions
+    directory: /
+    schedule: { interval: weekly }
+  - package-ecosystem: docker
+    directory: /backend
+    schedule: { interval: weekly }

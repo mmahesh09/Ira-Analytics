@@ -10,7 +10,7 @@ from sqlalchemy import func, select
 
 import app.jobs as jobs
 import app.main as main
-from app import credits, worker
+from app import credits, ratelimit, worker
 from app.config import settings
 from app.models import AuditReport
 from app.schema import Alert, Audit, CreditReservation, Job, Site
@@ -228,13 +228,17 @@ async def test_anonymous_preview_is_light_capped_and_ignores_spoofed_ips(db, mon
         yield {"type": "result", "report": fake_report(mode=mode).model_dump()}
 
     monkeypatch.setattr(main, "run_audit", fake_run_audit)
-    monkeypatch.setattr(main, "settings", settings.__class__(**{**settings.__dict__, "trusted_proxy_hops": 0}))
+    patched = settings.__class__(**{**settings.__dict__, "trusted_proxy_hops": 0})
+    monkeypatch.setattr(main, "settings", patched)
+    monkeypatch.setattr(ratelimit, "settings", patched)  # client_ip() lives there
     async with client() as c:
         statuses = [(await c.post("/api/audit", json={"url": "example.com"}, headers={"X-Forwarded-For": f"10.0.0.{i}"})).status_code for i in range(3)]
     assert statuses == [200, 200, 429]  # a forged header doesn't buy more previews
     assert modes == ["light", "light"]
 
-    monkeypatch.setattr(main, "settings", settings.__class__(**{**settings.__dict__, "trusted_proxy_hops": 1}))
+    patched = settings.__class__(**{**settings.__dict__, "trusted_proxy_hops": 1})
+    monkeypatch.setattr(main, "settings", patched)
+    monkeypatch.setattr(ratelimit, "settings", patched)  # client_ip() lives there
     async with client() as c:
         # behind one trusted proxy, the client can prepend anything, but the proxy's own entry is what counts
         spoofed = [(await c.post("/api/audit", json={"url": "example.com"}, headers={"X-Forwarded-For": f"1.1.1.{i}, 203.0.113.9"})).status_code for i in range(3)]

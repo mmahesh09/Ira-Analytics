@@ -355,6 +355,15 @@ class PreviewUsage(Base):
     count: Mapped[int] = mapped_column(Integer, default=0)
 
 
+class ApiRate(Base):
+    """Fixed-window request counters (app/ratelimit.py): per user or hashed IP, shared by every instance."""
+
+    __tablename__ = "api_rate"
+    key: Mapped[str] = mapped_column(String(96), primary_key=True)
+    window_start: Mapped[datetime] = mapped_column(DateTime(timezone=True), primary_key=True)
+    count: Mapped[int] = mapped_column(Integer, default=0)
+
+
 class Alert(Base):
     __tablename__ = "alerts"
     id: Mapped[int] = mapped_column(primary_key=True)

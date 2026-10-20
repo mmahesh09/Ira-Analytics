@@ -9,6 +9,8 @@ sqlalchemy[asyncio]==2.0.36
 asyncpg==0.30.0
 alembic==1.14.0
 apscheduler==3.11.0
+# IANA timezones for zoneinfo (slim images ship no system tz database)
+tzdata==2026.5
 cryptography==44.0.0
 ua-parser==1.0.0
 pytest==8.3.4

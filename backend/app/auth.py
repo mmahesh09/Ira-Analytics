@@ -12,6 +12,8 @@ from fastapi import Depends, HTTPException, Request
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from . import ratelimit
+from .config import settings
 from .db import get_session
 from .schema import AuthSession, Site, User
 
@@ -38,6 +40,10 @@ async def current_user(request: Request, db: AsyncSession = Depends(get_session)
     )
     if not user:
         raise HTTPException(401, "Your session has expired. Sign in again.")
+    # keyed on the account, not the session, so opening more sessions doesn't buy more requests
+    await ratelimit.hit(f"user:{user.id}", settings.user_rate_per_min)
+    if request.method not in ("GET", "HEAD", "OPTIONS"):
+        await ratelimit.hit(f"user-write:{user.id}", settings.user_write_rate_per_min)
     return user
 
 

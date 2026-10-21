@@ -90,6 +90,16 @@ const SECTIONS: LegalSection[] = [
             <strong>Google PageSpeed Insights</strong> receives the public URLs being audited, to measure speed.
           </li>
           <li>
+            <strong>PostHog</strong> (United States) receives product usage events, such as pages viewed and features used, with your account email and
+            name once you sign in, so we can see how Rankwise is used and fix errors.
+          </li>
+          <li>
+            <strong>Google Sheets</strong> receives a copy of feedback you send us, including your name and email if you choose to give them.
+          </li>
+          <li>
+            When enabled, <strong>Resend</strong> sends account emails (password resets and email verification) to your email address.
+          </li>
+          <li>
             When enabled, <strong>OpenRouter</strong> (AI models) receives public page content for AI rewrite suggestions, and <strong>DataForSEO</strong>{" "}
             receives a domain name for traffic estimates.
           </li>

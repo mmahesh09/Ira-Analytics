@@ -1,12 +1,14 @@
 import hashlib
 import hmac
+import re
 from dataclasses import replace
+from pathlib import Path
 
 import pytest
 
 from app import payments
 from app.config import settings
-from app.plans import CREDIT_COST, ENTITLED_STATUSES, ENTITLEMENTS, PACKS, PAID_PLANS, PLAN_IDS, PRICES
+from app.plans import CREDIT_COST, DEEP_CRAWL_PAGES, ENTITLED_STATUSES, ENTITLEMENTS, PACKS, PAID_PLANS, PLAN_IDS, PRICES
 
 
 @pytest.fixture
@@ -59,6 +61,41 @@ def test_plan_limits_match_the_pricing_page():
     limits = {p: (e.sites, e.monthly_credits) for p, e in ENTITLEMENTS.items()}
     assert limits == {"free": (1, 1), "pro": (3, 3), "business": (10, 7), "scale": (25, 11)}
     assert CREDIT_COST == {"audit": 1, "deep_audit": 3}
+
+
+PLANS_TS = Path(__file__).resolve().parents[2] / "frontend" / "src" / "lib" / "plans.ts"
+
+
+def test_pricing_page_mirrors_the_server_plans():
+    """frontend/src/lib/plans.ts is display copy; every number it shows must match what the server enforces."""
+    ts = PLANS_TS.read_text(encoding="utf-8")
+    const = {k: int(v) for k, v in re.findall(r"export const (AUDIT_COST|DEEP_AUDIT_COST|DEEP_AUDIT_PAGES) = (\d+);", ts)}
+    assert const == {"AUDIT_COST": CREDIT_COST["audit"], "DEEP_AUDIT_COST": CREDIT_COST["deep_audit"], "DEEP_AUDIT_PAGES": DEEP_CRAWL_PAGES}
+
+    cards = re.findall(r'id: "(\w+)",\s*name:.*?price: \{ usd: (\d+), inr: (\d+) \},\s*credits: (\d+),\s*sites: (\d+),', ts, re.S)
+    assert {c[0] for c in cards} == set(PLAN_IDS)
+    for plan, usd, inr, credits, sites in cards:
+        e = ENTITLEMENTS[plan]
+        assert (int(credits), int(sites)) == (e.monthly_credits, e.sites), plan
+        if plan != "free":
+            assert (int(usd) * 100, int(inr) * 100) == (PRICES[(plan, "usd")], PRICES[(plan, "inr")]), plan
+
+    packs = re.findall(r'\{ id: "(pack_\w+)", credits: (\d+), price: \{ usd: (\d+), inr: (\d+) \} \}', ts)
+    assert {p: (int(c), {"usd": int(u) * 100, "inr": int(i) * 100}) for p, c, u, i in packs} == {p: (k.credits, k.prices) for p, k in PACKS.items()}
+
+    def row(label: str) -> dict[str, str]:
+        values = re.search(re.escape(label) + r'", values: \{ (free: .*?) \}', ts)
+        assert values, f"comparison row {label!r} not found"
+        return dict(re.findall(r'(\w+): "?([^",]+)"?', values.group(1)))
+
+    assert row("Websites") == {p: str(e.sites) for p, e in ENTITLEMENTS.items()}
+    assert row("Full-audit credits each month") == {p: str(e.monthly_credits) for p, e in ENTITLEMENTS.items()}
+    assert row("Pages checked for broken links") == {p: str(e.crawl_pages) for p, e in ENTITLEMENTS.items()}
+    assert row("Light checks per day, all sites") == {p: str(e.daily_checks) for p, e in ENTITLEMENTS.items()}
+    assert row("Scheduled light checks") == {p: e.check_cadence.capitalize() for p, e in ENTITLEMENTS.items()}
+    assert row("Extra credit packs") == {p: str(e.credit_packs).lower() for p, e in ENTITLEMENTS.items()}
+    deep = re.search(r'label: `Deep audit[^`]*`, values: \{ (free: .*?) \}', ts)
+    assert deep and dict(re.findall(r"(\w+): (\w+)", deep.group(1))) == {p: str(e.deep_audit).lower() for p, e in ENTITLEMENTS.items()}
 
 
 def test_entitlements_grow_with_plan():
